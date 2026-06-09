@@ -1,5 +1,6 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -10,57 +11,64 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterResponse;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private EditText edtEmail, edtPassword, edtConfirmPassword;
+    private EditText edtFullName, edtUsername, edtEmail, edtPhone, edtDob, edtPassword, edtConfirmPassword;
     private Button btnRegisterSubmit;
     private TextView txtGotoLogin;
     private ImageView btnBack;
-    private ImageView imgRegisterEye1, imgRegisterEye2; // ◄ Đã khai báo thêm biến cho 2 con mắt
+    private ImageView imgRegisterEye1, imgRegisterEye2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        // Ánh xạ thành phần từ XML sang Java
+        edtFullName = findViewById(R.id.edt_register_fullname);
+        edtUsername = findViewById(R.id.edt_register_username);
         edtEmail = findViewById(R.id.edt_register_email);
+        edtPhone = findViewById(R.id.edt_register_phone);
+        edtDob = findViewById(R.id.edt_register_dob);
         edtPassword = findViewById(R.id.edt_register_password);
         edtConfirmPassword = findViewById(R.id.edt_register_confirm_password);
+
         btnRegisterSubmit = findViewById(R.id.btn_register_submit);
         txtGotoLogin = findViewById(R.id.txt_goto_login);
         btnBack = findViewById(R.id.btn_register_back);
-        imgRegisterEye1 = findViewById(R.id.img_register_eye1); // ◄ Ánh xạ mắt 1
-        imgRegisterEye2 = findViewById(R.id.img_register_eye2); // ◄ Ánh xạ mắt 2
+        imgRegisterEye1 = findViewById(R.id.img_register_eye1);
+        imgRegisterEye2 = findViewById(R.id.img_register_eye2);
 
-        // Gán hình mắt nhắm mặc định ban đầu cho cả 2 ô
-        if (imgRegisterEye1 != null) imgRegisterEye1.setImageResource(R.drawable.ic_eye_close);
-        if (imgRegisterEye2 != null) imgRegisterEye2.setImageResource(R.drawable.ic_eye_close);
-
-        // Xử lý nút Đăng Ký
         if (btnRegisterSubmit != null) {
             btnRegisterSubmit.setOnClickListener(v -> {
+                String fullName = edtFullName.getText().toString().trim();
+                String username = edtUsername.getText().toString().trim();
                 String email = edtEmail.getText().toString().trim();
+                String phone = edtPhone.getText().toString().trim();
+                String dob = edtDob.getText().toString().trim();
                 String pass = edtPassword.getText().toString().trim();
                 String confirmPass = edtConfirmPassword.getText().toString().trim();
 
-                if (TextUtils.isEmpty(email) || TextUtils.isEmpty(pass) || TextUtils.isEmpty(confirmPass)) {
-                    Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin!", Toast.LENGTH_SHORT).show();
+                if (TextUtils.isEmpty(fullName) || TextUtils.isEmpty(username) ||
+                        TextUtils.isEmpty(email) || TextUtils.isEmpty(phone) ||
+                        TextUtils.isEmpty(dob) || TextUtils.isEmpty(pass) || TextUtils.isEmpty(confirmPass)) {
+                    Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin, không được bỏ trống!", Toast.LENGTH_SHORT).show();
                 } else if (!pass.equals(confirmPass)) {
                     Toast.makeText(this, "Mật khẩu xác nhận không trùng khớp!", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Đăng ký tài khoản thành công!", Toast.LENGTH_SHORT).show();
-                    finish(); // Trở về trang Login
+                    executeRegisterApi(username, email, pass, fullName, dob, phone);
                 }
             });
         }
 
-        // Xử lý click chuyển về trang Login & Đổi màu chữ Đăng nhập bằng HTML
         if (txtGotoLogin != null) {
             txtGotoLogin.setOnClickListener(v -> finish());
-
-            // Nhuộm màu đỏ đô (#A52A2A) riêng cho chữ Đăng nhập
             String customText = "Đã có tài khoản? <font color='#A52A2A'><b>Đăng nhập</b></font>";
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                 txtGotoLogin.setText(android.text.Html.fromHtml(customText, android.text.Html.FROM_HTML_MODE_LEGACY));
@@ -69,12 +77,53 @@ public class RegisterActivity extends AppCompatActivity {
             }
         }
 
-        // Nút back trên đỉnh đầu
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> finish());
         }
 
-        // 🆕 1. Logic ẩn/hiện mật khẩu cho Ô MẬT KHẨU 1
+        setupPasswordVisibilityToggles();
+    }
+
+    private void executeRegisterApi(String username, String email, String password, String fullName, String dob, String phone) {
+        btnRegisterSubmit.setEnabled(false);
+        btnRegisterSubmit.setText("ĐANG XỬ LÝ...");
+
+        RegisterRequest request = new RegisterRequest(username, email, password, fullName, dob, phone);
+
+        ApiClient.getApiService().registerUser(request).enqueue(new Callback<RegisterResponse>() {
+            @Override
+            public void onResponse(Call<RegisterResponse> call, Response<RegisterResponse> response) {
+                btnRegisterSubmit.setEnabled(true);
+                btnRegisterSubmit.setText("ĐĂNG KÝ");
+
+                if (response.isSuccessful() && response.body() != null) {
+                    RegisterResponse regResponse = response.body();
+                    if (regResponse.isSuccess() && regResponse.getData() != null) {
+
+                        // 📍 ĐÃ SỬA TẠI ĐÂY: Chuyển hẳn sang màn hình VerifyOtpActivity kèm Token
+                        String verificationToken = regResponse.getData();
+                        Intent intent = new Intent(RegisterActivity.this, VerifyOtpActivity.class);
+                        intent.putExtra("VERIFICATION_TOKEN", verificationToken);
+                        startActivity(intent);
+
+                    } else {
+                        Toast.makeText(RegisterActivity.this, regResponse.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    Toast.makeText(RegisterActivity.this, "Đăng ký thất bại! Email hoặc Username đã tồn tại.", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<RegisterResponse> call, Throwable t) {
+                btnRegisterSubmit.setEnabled(true);
+                btnRegisterSubmit.setText("ĐĂNG KÝ");
+                Toast.makeText(RegisterActivity.this, "Kết nối thất bại: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void setupPasswordVisibilityToggles() {
         final boolean[] isPasswordVisible1 = {false};
         if (imgRegisterEye1 != null && edtPassword != null) {
             imgRegisterEye1.setOnClickListener(v -> {
@@ -87,12 +136,10 @@ public class RegisterActivity extends AppCompatActivity {
                     imgRegisterEye1.setImageResource(R.drawable.ic_eye_open);
                     isPasswordVisible1[0] = true;
                 }
-                // Giữ con trỏ ở cuối dòng
                 edtPassword.setSelection(edtPassword.getText().length());
             });
         }
 
-        // 🆕 2. Logic ẩn/hiện mật khẩu cho Ô XÁC NHẬN MẬT KHẨU 2
         final boolean[] isPasswordVisible2 = {false};
         if (imgRegisterEye2 != null && edtConfirmPassword != null) {
             imgRegisterEye2.setOnClickListener(v -> {
@@ -105,7 +152,6 @@ public class RegisterActivity extends AppCompatActivity {
                     imgRegisterEye2.setImageResource(R.drawable.ic_eye_open);
                     isPasswordVisible2[0] = true;
                 }
-                // Giữ con trỏ ở cuối dòng
                 edtConfirmPassword.setSelection(edtConfirmPassword.getText().length());
             });
         }
