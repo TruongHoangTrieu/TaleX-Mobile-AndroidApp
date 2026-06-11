@@ -22,8 +22,8 @@
             <ImageView
                 android:layout_width="100dp"
                 android:layout_height="100dp"
-                android:src="@drawable/ic_nav_account"
-                app:tint="#D4AF37" />
+                android:src="@mipmap/ic_launcher_foreground"
+                 />
 
             <TextView
                 android:layout_width="wrap_content"

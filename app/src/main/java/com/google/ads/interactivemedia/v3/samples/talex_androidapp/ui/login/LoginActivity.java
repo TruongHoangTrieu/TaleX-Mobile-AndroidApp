@@ -26,7 +26,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText edtEmail, edtPassword;
     private Button btnLoginSubmit;
     private TextView txtGotoRegister;
-    private CardView cardFb, cardGg, cardApple;
+    private CardView cardGg; // Đã xóa cardFb, cardApple
     private ImageView btnBack;
 
     @Override
@@ -39,9 +39,7 @@ public class LoginActivity extends AppCompatActivity {
         edtPassword = findViewById(R.id.edt_password);
         btnLoginSubmit = findViewById(R.id.btn_login_submit);
 
-        cardFb = findViewById(R.id.card_social_fb);
-        cardGg = findViewById(R.id.card_social_gg);
-        cardApple = findViewById(R.id.card_social_apple);
+        cardGg = findViewById(R.id.card_social_gg); // Chỉ giữ lại Google
         btnBack = findViewById(R.id.btn_login_back);
         txtGotoRegister = findViewById(R.id.txt_goto_register);
 
@@ -60,10 +58,10 @@ public class LoginActivity extends AppCompatActivity {
             });
         }
 
-        // 4. Các nút Đăng nhập Mạng xã hội
-        if (cardFb != null) cardFb.setOnClickListener(v -> Toast.makeText(this, "Đăng nhập bằng Facebook...", Toast.LENGTH_SHORT).show());
-        if (cardGg != null) cardGg.setOnClickListener(v -> Toast.makeText(this, "Đăng nhập bằng Google...", Toast.LENGTH_SHORT).show());
-        if (cardApple != null) cardApple.setOnClickListener(v -> Toast.makeText(this, "Đăng nhập bằng Apple...", Toast.LENGTH_SHORT).show());
+        // 4. Chỉ giữ lại nút Đăng nhập bằng Google
+        if (cardGg != null) {
+            cardGg.setOnClickListener(v -> Toast.makeText(this, "Đăng nhập bằng Google...", Toast.LENGTH_SHORT).show());
+        }
 
         // 5. Nút Back
         if (btnBack != null) {
@@ -112,7 +110,6 @@ public class LoginActivity extends AppCompatActivity {
 
     // 🆕 HÀM GỌI KẾT NỐI API ĐĂNG NHẬP
     private void executeLoginApi(String email, String password) {
-        // Vô hiệu hóa tạm thời nút bấm để tránh người dùng nhấn liên tục
         btnLoginSubmit.setEnabled(false);
         btnLoginSubmit.setText("ĐANG XỬ LÝ...");
 
@@ -128,7 +125,6 @@ public class LoginActivity extends AppCompatActivity {
                     LoginResponse loginResponse = response.body();
 
                     if (loginResponse.isSuccess() && loginResponse.getData() != null) {
-                        // Đăng nhập thành công -> Lấy Token ra
                         String accessToken = loginResponse.getData().getAccessToken();
                         String refreshToken = loginResponse.getData().getRefreshToken();
 
@@ -138,7 +134,7 @@ public class LoginActivity extends AppCompatActivity {
                             );
 
                             SharedPreferences securePrefs = androidx.security.crypto.EncryptedSharedPreferences.create(
-                                    "TaleXSecurePref", // Ghi đúng tên file mật mã để AccountFragment đọc được
+                                    "TaleXSecurePref",
                                     masterKeyAlias,
                                     LoginActivity.this,
                                     androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
@@ -158,18 +154,15 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                         navigateToMain();
                     } else {
-                        // Server trả về mã 200 nhưng logic xử lý thất bại (Ví dụ: Sai tài khoản)
                         Toast.makeText(LoginActivity.this, loginResponse.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 } else {
-                    // Lỗi từ phía Server (Ví dụ: Mã lỗi 400, 401, 500)
                     Toast.makeText(LoginActivity.this, "Tài khoản hoặc mật khẩu không chính xác!", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<LoginResponse> call, Throwable t) {
-                // Lỗi mất kết nối mạng, rớt mạng hoặc Server Backend bị sập nguồn
                 btnLoginSubmit.setEnabled(true);
                 btnLoginSubmit.setText("ĐĂNG NHẬP");
                 Toast.makeText(LoginActivity.this, "Lỗi kết nối Server: " + t.getMessage(), Toast.LENGTH_LONG).show();
