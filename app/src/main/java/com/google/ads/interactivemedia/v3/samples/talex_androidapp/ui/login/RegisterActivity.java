@@ -102,8 +102,23 @@ public class RegisterActivity extends AppCompatActivity {
 
                         // 📍 ĐÃ SỬA TẠI ĐÂY: Chuyển hẳn sang màn hình VerifyOtpActivity kèm Token
                         String verificationToken = regResponse.getData();
-                        Intent intent = new Intent(RegisterActivity.this, VerifyOtpActivity.class);
-                        intent.putExtra("VERIFICATION_TOKEN", verificationToken);
+
+                        Intent intent = new Intent(
+                                RegisterActivity.this,
+                                VerifyOtpActivity.class
+                        );
+
+                        intent.putExtra(
+                                "VERIFICATION_TOKEN",
+                                verificationToken
+                        );
+
+// Truyền email sang màn hình OTP
+                        intent.putExtra(
+                                "EMAIL",
+                                email
+                        );
+
                         startActivity(intent);
 
                     } else {
