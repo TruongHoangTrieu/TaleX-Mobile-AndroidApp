@@ -11,15 +11,24 @@ public class ApiClient {
 
     public static ApiService getApiService() {
         if (retrofit == null) {
-            // Bật bộ Log giám sát để hiển thị dữ liệu API chạy dưới logcat giúp dễ debug
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+            // 📍 ĐƠN THUỐC BẢO MẬT: Phân tách môi trường chạy App tự động
+            if (BuildConfig.DEBUG) {
+                // Khi đang code bằng máy ảo/cắm cáp: Chỉ in HEADERS (Phương thức POST/GET, Mã 200/400, Độ dài)
+                // Tuyệt đối KHÔNG in BODY để giấu nhẹm mật khẩu và token mới tinh đi
+                logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+            } else {
+                // Khi đóng gói file APK thành phẩm nộp bài hoặc phát hành: Tắt hẳn Log bảo mật
+                logging.setLevel(HttpLoggingInterceptor.Level.NONE);
+            }
+
             OkHttpClient client = new OkHttpClient.Builder()
                     .addInterceptor(logging)
                     .build();
 
             retrofit = new Retrofit.Builder()
-                    .baseUrl(BuildConfig.BASE_URL) // Gọi tự động từ file local.properties của Triệu
+                    .baseUrl(BuildConfig.BASE_URL)
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(client)
                     .build();
