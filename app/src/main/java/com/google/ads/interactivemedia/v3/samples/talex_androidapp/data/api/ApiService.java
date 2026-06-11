@@ -8,11 +8,12 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Ve
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResendOtpRequest;
-
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse;
 import retrofit2.Call;
+import retrofit2.http.Header;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
-
+import retrofit2.http.GET;
 public interface ApiService {
     @POST("api/auth/login")
     Call<LoginResponse> loginUser(@Body LoginRequest request);
@@ -29,4 +30,6 @@ public interface ApiService {
     Call<RegisterResponse> resendOtp(
             @Body ResendOtpRequest request
     );
+    @GET("api/auth/me")
+    Call<ProfileResponse> getCurrentProfile(@Header("Authorization") String token);
 }
