@@ -9,6 +9,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.app.DatePickerDialog;
+import java.util.Calendar;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
@@ -21,6 +23,7 @@ import retrofit2.Response;
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText edtFullName, edtUsername, edtEmail, edtPhone, edtDob, edtPassword, edtConfirmPassword;
+    private String dobApi = "";
     private Button btnRegisterSubmit;
     private TextView txtGotoLogin;
     private ImageView btnBack;
@@ -36,6 +39,9 @@ public class RegisterActivity extends AppCompatActivity {
         edtEmail = findViewById(R.id.edt_register_email);
         edtPhone = findViewById(R.id.edt_register_phone);
         edtDob = findViewById(R.id.edt_register_dob);
+        edtDob.setFocusable(false);
+        edtDob.setClickable(true);
+        edtDob.setOnClickListener(v -> showDatePicker());
         edtPassword = findViewById(R.id.edt_register_password);
         edtConfirmPassword = findViewById(R.id.edt_register_confirm_password);
 
@@ -51,7 +57,7 @@ public class RegisterActivity extends AppCompatActivity {
                 String username = edtUsername.getText().toString().trim();
                 String email = edtEmail.getText().toString().trim();
                 String phone = edtPhone.getText().toString().trim();
-                String dob = edtDob.getText().toString().trim();
+                String dob = dobApi;
                 String pass = edtPassword.getText().toString().trim();
                 String confirmPass = edtConfirmPassword.getText().toString().trim();
 
@@ -68,7 +74,15 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         if (txtGotoLogin != null) {
-            txtGotoLogin.setOnClickListener(v -> finish());
+            txtGotoLogin.setOnClickListener(v -> {
+                // Chủ động mở màn hình Đăng nhập
+                Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                // Cờ này giúp dọn dẹp các Activity trùng lặp nếu có
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish(); // Đóng màn hình đăng ký lại
+            });
+
             String customText = "Đã có tài khoản? <font color='#A52A2A'><b>Đăng nhập</b></font>";
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                 txtGotoLogin.setText(android.text.Html.fromHtml(customText, android.text.Html.FROM_HTML_MODE_LEGACY));
@@ -170,5 +184,46 @@ public class RegisterActivity extends AppCompatActivity {
                 edtConfirmPassword.setSelection(edtConfirmPassword.getText().length());
             });
         }
+    }
+    private void showDatePicker() {
+
+        Calendar calendar = Calendar.getInstance();
+
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, selectedYear, selectedMonth, selectedDay) -> {
+
+                    // Hiển thị trên giao diện
+                    String displayDate = String.format(
+                            "%02d-%02d-%04d",
+                            selectedDay,
+                            selectedMonth + 1,
+                            selectedYear
+                    );
+
+                    edtDob.setText(displayDate);
+
+                    // Format gửi API
+                    dobApi = String.format(
+                            "%04d-%02d-%02d",
+                            selectedYear,
+                            selectedMonth + 1,
+                            selectedDay
+                    );
+                },
+                year,
+                month,
+                day
+        );
+
+        // Không cho chọn ngày tương lai
+        datePickerDialog.getDatePicker().setMaxDate(System.currentTimeMillis());
+
+        datePickerDialog.show();
+
     }
 }

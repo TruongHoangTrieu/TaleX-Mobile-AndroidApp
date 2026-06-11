@@ -128,12 +128,13 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_rounded"
-                android:hint="Ngày sinh (Ví dụ: 2000-01-23)"
-                android:inputType="date"
+                android:hint="Chọn ngày sinh"
                 android:paddingHorizontal="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#88FFFFFF"
-                android:textSize="14sp" />
+                android:focusable="false"
+                android:clickable="true"
+                android:cursorVisible="false"/>
 
             <RelativeLayout
                 android:layout_width="match_parent"
