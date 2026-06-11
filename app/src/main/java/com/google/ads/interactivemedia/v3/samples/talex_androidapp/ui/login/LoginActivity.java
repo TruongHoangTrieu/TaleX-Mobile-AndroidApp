@@ -132,12 +132,28 @@ public class LoginActivity extends AppCompatActivity {
                         String accessToken = loginResponse.getData().getAccessToken();
                         String refreshToken = loginResponse.getData().getRefreshToken();
 
-                        // Lưu Token vào SharedPreferences của thiết bị một cách an toàn
-                        SharedPreferences sharedPref = getSharedPreferences("TaleXPref", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPref.edit();
-                        editor.putString("ACCESS_TOKEN", accessToken);
-                        editor.putString("REFRESH_TOKEN", refreshToken);
-                        editor.apply();
+                        try {
+                            String masterKeyAlias = androidx.security.crypto.MasterKeys.getOrCreate(
+                                    androidx.security.crypto.MasterKeys.AES256_GCM_SPEC
+                            );
+
+                            SharedPreferences securePrefs = androidx.security.crypto.EncryptedSharedPreferences.create(
+                                    "TaleXSecurePref", // Ghi đúng tên file mật mã để AccountFragment đọc được
+                                    masterKeyAlias,
+                                    LoginActivity.this,
+                                    androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                                    androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                            );
+
+                            SharedPreferences.Editor editor = securePrefs.edit();
+                            editor.putString("ACCESS_TOKEN", accessToken);
+                            editor.putString("REFRESH_TOKEN", refreshToken);
+                            editor.apply();
+
+                        } catch (java.security.GeneralSecurityException | java.io.IOException e) {
+                            e.printStackTrace();
+                            Toast.makeText(LoginActivity.this, "Lỗi mã hóa dữ liệu đăng nhập!", Toast.LENGTH_SHORT).show();
+                        }
 
                         Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                         navigateToMain();
