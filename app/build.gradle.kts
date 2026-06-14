@@ -31,6 +31,7 @@ android {
         val uploadPreset = properties.getProperty("CLOUDINARY_UPLOAD_PRESET") ?: "\"\""
         val folder = properties.getProperty("CLOUDINARY_FOLDER") ?: "\"\""
         val hlsProfile = properties.getProperty("CLOUDINARY_HLS_PROFILE") ?: "\"\""
+        val googleWebClientId = properties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: "\"944484409286-1be4pbdkiddo4eq795c38h14mla4jlhg.apps.googleusercontent.com\""
 
         // Sinh file BuildConfig cho Java gọi
         buildConfigField("String", "BASE_URL", baseUrl)
@@ -38,9 +39,22 @@ android {
         buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET", uploadPreset)
         buildConfigField("String", "CLOUDINARY_FOLDER", folder)
         buildConfigField("String", "CLOUDINARY_HLS_PROFILE", hlsProfile)
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", googleWebClientId)
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -72,6 +86,9 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Google Sign-In (Credential Manager)
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

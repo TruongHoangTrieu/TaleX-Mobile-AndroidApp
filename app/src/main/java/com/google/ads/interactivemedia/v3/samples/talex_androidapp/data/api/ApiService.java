@@ -8,6 +8,13 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Ve
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResendOtpRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.GoogleLoginRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.GoogleLoginResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CompleteProfileRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ChangePasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResetPasswordRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse;
 import retrofit2.Call;
 import retrofit2.http.Header;
@@ -30,6 +37,21 @@ public interface ApiService {
     Call<RegisterResponse> resendOtp(
             @Body ResendOtpRequest request
     );
+    @POST("api/auth/google")
+    Call<GoogleLoginResponse> googleLogin(@Body GoogleLoginRequest request);
+
+    @POST("api/auth/complete-profile")
+    Call<LoginResponse> completeProfile(@Body CompleteProfileRequest request);
+
+    @POST("api/auth/change-password")
+    Call<LoginResponse> changePassword(@Header("Authorization") String token, @Body ChangePasswordRequest request);
+
+    @POST("api/auth/forgot-password")
+    Call<ForgotPasswordResponse> forgotPassword(@Body ForgotPasswordRequest request);
+
+    @POST("api/auth/reset-password")
+    Call<LoginResponse> resetPassword(@Body ResetPasswordRequest request);
+
     @GET("api/auth/me")
     Call<ProfileResponse> getCurrentProfile(@Header("Authorization") String token);
 }

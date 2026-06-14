@@ -25,6 +25,7 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiS
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse; // ◄ Thêm model hứng dữ liệu
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.ChangePasswordActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.LoginActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.RegisterActivity;
 
@@ -37,6 +38,7 @@ public class AccountFragment extends Fragment {
     private LinearLayout layoutLoggedIn, layoutLoggedOut;
     private Button btnLogout, btnLoginNow, btnRegisterNow;
     private SharedPreferences securePrefs;
+    private boolean hasPasswordFlag = true;
 
     // 📍 2. BỔ SUNG: Khai báo toàn bộ các View chứa thông tin cá nhân từ API
     private ImageView imgAvatar;
@@ -79,7 +81,11 @@ public class AccountFragment extends Fragment {
 
         // Các sự kiện thông báo cũ
         if (btnUpgrade != null) btnUpgrade.setOnClickListener(v -> Toast.makeText(getContext(), "Gia hạn Premium!", Toast.LENGTH_SHORT).show());
-        if (btnChangePassword != null) btnChangePassword.setOnClickListener(v -> Toast.makeText(getContext(), "Đổi mật khẩu!", Toast.LENGTH_SHORT).show());
+        if (btnChangePassword != null) btnChangePassword.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), ChangePasswordActivity.class);
+            intent.putExtra("HAS_PASSWORD", hasPasswordFlag);
+            startActivity(intent);
+        });
         if (btnHistory != null) btnHistory.setOnClickListener(v -> Toast.makeText(getContext(), "Mở lịch sử!", Toast.LENGTH_SHORT).show());
         if (btnFavorite != null) btnFavorite.setOnClickListener(v -> Toast.makeText(getContext(), "Mở yêu thích!", Toast.LENGTH_SHORT).show());
         if (btnPolicy != null) btnPolicy.setOnClickListener(v -> Toast.makeText(getContext(), "Mở chính sách!", Toast.LENGTH_SHORT).show());
@@ -154,6 +160,9 @@ public class AccountFragment extends Fragment {
                     ProfileResponse.UserData user = response.body().getData();
 
                     if (user != null) {
+                        // Lưu flag hasPassword để truyền sang ChangePasswordActivity
+                        hasPasswordFlag = user.isHasPassword();
+
                         // Đổ dữ liệu từ API vào các ID tương ứng
                         if (tvFullName != null) tvFullName.setText(user.getFullName() != null ? user.getFullName() : "Chưa cập nhật họ tên");
                         if (tvRoleName != null) tvRoleName.setText("👑 Cấp bậc: " + (user.getRoleName() != null ? user.getRoleName() : "Thành viên"));
