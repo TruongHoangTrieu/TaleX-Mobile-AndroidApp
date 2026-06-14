@@ -16,6 +16,8 @@ public class ProfileResponse {
         private String dateOfBirth;
         private String avatarUrl;
         private String roleName;
+        private boolean hasPassword;
+        private boolean googleLinked;
 
         public String getUsername() { return username; }
         public String getEmail() { return email; }
@@ -24,5 +26,7 @@ public class ProfileResponse {
         public String getDateOfBirth() { return dateOfBirth; }
         public String getAvatarUrl() { return avatarUrl; }
         public String getRoleName() { return roleName; }
+        public boolean isHasPassword() { return hasPassword; }
+        public boolean isGoogleLinked() { return googleLinked; }
     }
 }
