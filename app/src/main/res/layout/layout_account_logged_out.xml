@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_logged_out"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="40dp"
+    android:visibility="gone">
+
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@mipmap/ic_launcher_foreground" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Trải nghiệm trọn vẹn TaleX"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="Đăng nhập hoặc đăng ký tài khoản để lưu lịch sử đọc truyện và nhận đặc quyền Premium."
+        android:textColor="#888888"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btn_login_now"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="32dp"
+        android:backgroundTint="#D4AF37"
+        android:text="ĐĂNG NHẬP"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        app:cornerRadius="8dp" />
+
+    <Button
+        android:id="@+id/btn_register_now"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="12dp"
+        android:backgroundTint="#1A1A1A"
+        android:text="TẠO TÀI KHOẢN MỚI"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        app:strokeColor="#555555"
+        app:strokeWidth="1dp"
+        app:cornerRadius="8dp" />
+</LinearLayout>

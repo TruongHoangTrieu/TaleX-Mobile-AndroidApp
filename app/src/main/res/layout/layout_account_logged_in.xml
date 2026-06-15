@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_logged_in"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#0F0F0F"
+    android:padding="16dp"
+    android:paddingBottom="100dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="24dp">
+
+        <LinearLayout
+            android:id="@+id/layout_system_actions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:id="@+id/btn_notifications"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="16dp"
+                android:src="@drawable/ic_notification"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                app:tint="#FFFFFF" />
+
+            <ImageView
+                android:id="@+id/btn_settings"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_settings"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                app:tint="#FFFFFF" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_avatar_wrapper"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_below="@id/layout_system_actions"
+            android:layout_alignParentStart="true"
+            app:cardCornerRadius="34dp"
+            app:cardBackgroundColor="#8E24AA"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:id="@+id/img_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_nav_account" />
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:id="@+id/layout_user_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/layout_system_actions"
+            android:layout_toEndOf="@id/card_avatar_wrapper"
+            android:layout_alignTop="@id/card_avatar_wrapper"
+            android:layout_alignBottom="@id/card_avatar_wrapper"
+            android:layout_marginStart="14dp"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_username"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_role_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/bg_level_badge"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp"
+        android:weightSum="3">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_coins_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Tiền xu"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_points_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Điểm"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_tickets_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Phiếu"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#161618"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TỦ SÁCH"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_alignParentEnd="true"
+                    android:src="@drawable/ic_arrow_back"
+                    app:tint="#666666"
+                    android:rotation="180" />
+            </RelativeLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tab_history"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_tab_active"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="5dp"
+                    android:text="Lịch sử"
+                    android:textColor="#D4AF37"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tab_follow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_tab_inactive"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="5dp"
+                    android:text="Theo dõi"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tab_download"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_tab_inactive"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="5dp"
+                    android:text="Tải xuống"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:gravity="center"
+                android:orientation="vertical">
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="#FFFFFF" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#161618"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gửi Bản Thảo"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:weightSum="4">
+
+                <LinearLayout style="@style/DraftGridItemStyle">
+                    <ImageView style="@style/DraftGridIconStyle" android:src="@drawable/ic_search" />
+                    <TextView style="@style/DraftGridTextStyle" android:text="Trở thành tác giả" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/DraftGridItemStyle">
+                    <ImageView style="@style/DraftGridIconStyle" android:src="@drawable/ic_search" />
+                    <TextView style="@style/DraftGridTextStyle" android:text="Sáng tác truyện chat" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/DraftGridItemStyle">
+                    <ImageView style="@style/DraftGridIconStyle" android:src="@drawable/ic_search" />
+                    <TextView style="@style/DraftGridTextStyle" android:text="Sáng tác tiểu thuyết" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/DraftGridItemStyle">
+                    <ImageView style="@style/DraftGridIconStyle" android:src="@drawable/ic_search" />
+                    <TextView style="@style/DraftGridTextStyle" android:text="Truyện ngắn" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#161618"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                android:text="Quyền Lợi"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout android:id="@+id/btn_upgrade" style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_vip" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="VIP" />
+            </LinearLayout>
+            <View style="@style/AccountMenuDividerStyle" />
+
+            <LinearLayout style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_transaction" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Lịch sử giao dịch" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#161618"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                android:text="Cá Nhân"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_nav_account" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Hồ sơ cá nhân" />
+            </LinearLayout>
+            <View style="@style/AccountMenuDividerStyle" />
+
+            <LinearLayout style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_comment" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Bình luận của tôi" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        app:cardBackgroundColor="#161618"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                android:text="Hỗ Trợ"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout android:id="@+id/btn_change_password" style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_password" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Đổi mật khẩu tài khoản" />
+            </LinearLayout>
+            <View style="@style/AccountMenuDividerStyle" />
+
+            <LinearLayout style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_support" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Phản hồi và Hỗ trợ" />
+            </LinearLayout>
+            <View style="@style/AccountMenuDividerStyle" />
+
+            <LinearLayout android:id="@+id/btn_policy" style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_privacy" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Chính sách bảo mật" />
+            </LinearLayout>
+            <View style="@style/AccountMenuDividerStyle" />
+
+            <LinearLayout style="@style/AccountMenuItemStyle">
+                <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_about" />
+                <TextView style="@style/AccountMenuTextStyle" android:text="Giới thiệu chúng tôi" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_logout"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="Đăng Xuất"
+        android:textColor="#FF5252"
+        android:textStyle="bold"
+        android:backgroundTint="#262628"
+        app:cornerRadius="10dp"
+        app:icon="@drawable/ic_logout"
+        app:iconTint="#FF5252"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp"/>
+
+    <TextView android:id="@+id/tv_email" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone" />
+    <TextView android:id="@+id/tv_phone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone" />
+    <TextView android:id="@+id/tv_dob" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone" />
+</LinearLayout>
