@@ -24,10 +24,11 @@ import retrofit2.http.GET;
 public interface ApiService {
     @POST("api/auth/login")
     Call<LoginResponse> loginUser(@Body LoginRequest request);
-    @POST("api/auth/register") // ◄ Thêm Router đăng ký
+
+    @POST("api/auth/register")
     Call<RegisterResponse> registerUser(@Body RegisterRequest request);
 
-    @POST("api/auth/verify-email") // ◄ Thêm Router xác thực OTP
+    @POST("api/auth/verify-email")
     Call<LoginResponse> verifyEmail(@Body VerifyEmailRequest request);
 
     @POST("api/auth/logout")
@@ -37,6 +38,7 @@ public interface ApiService {
     Call<RegisterResponse> resendOtp(
             @Body ResendOtpRequest request
     );
+
     @POST("api/auth/google")
     Call<GoogleLoginResponse> googleLogin(@Body GoogleLoginRequest request);
 

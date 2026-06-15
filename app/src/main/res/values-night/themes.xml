@@ -1,10 +1,102 @@
-<resources>
-    <!-- Base application theme. -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
     <style name="Base.Theme.TaleXAndroidApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Use system black for primary in dark theme -->
-        <item name="colorPrimary">@android:color/black</item>
-        <item name="colorOnPrimary">@android:color/white</item>
-        <item name="colorPrimaryContainer">@android:color/black</item>
-        <item name="colorOnPrimaryContainer">@android:color/white</item>
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/brand_primary</item>
+        <item name="colorOnPrimaryContainer">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
     </style>
+
+    <style name="Theme.TaleXAndroidApp" parent="Base.Theme.TaleXAndroidApp" />
+
+    <style name="AccountMenuItemStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">54dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:foreground">?android:attr/selectableItemBackground</item>
+    </style>
+
+    <style name="AccountMenuIconStyle">
+        <item name="android:layout_width">20dp</item>
+        <item name="android:layout_height">20dp</item>
+        <item name="android:layout_marginEnd">14dp</item>
+        <item name="tint">#888888</item>
+    </style>
+
+    <style name="AccountMenuTextStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#E5E5E5</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="AccountMenuDividerStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">0.5dp</item>
+        <item name="android:layout_marginStart">50dp</item>
+        <item name="android:background">#222224</item>
+    </style>
+
+    <style name="DraftGridItemStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="DraftGridIconStyle">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="tint">#FFFFFF</item>
+    </style>
+
+    <style name="DraftGridTextStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">#AAAAAA</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="FeatureCardGridStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_columnWeight">1</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="cardBackgroundColor">#161618</item>
+        <item name="cardCornerRadius">8dp</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+
+    <style name="FeatureCardContentStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">60dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <style name="FeatureCardIconStyle">
+        <item name="android:layout_width">28dp</item>
+        <item name="android:layout_height">28dp</item>
+        <item name="android:layout_marginEnd">10dp</item>
+    </style>
+
+    <style name="FeatureCardTextStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
 </resources>
