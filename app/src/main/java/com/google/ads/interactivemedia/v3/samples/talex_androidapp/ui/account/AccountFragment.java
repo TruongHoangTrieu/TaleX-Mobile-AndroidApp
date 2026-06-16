@@ -25,6 +25,7 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiS
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc.EkycActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.ChangePasswordActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.LoginActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.RegisterActivity;
@@ -46,7 +47,7 @@ public class AccountFragment extends Fragment {
     private TextView tvFullName, tvRoleName, tvUsername, tvEmail, tvPhone, tvDob;
 
     // Đã sửa: Gom toàn bộ các nút dạng Khối/LinearLayout thành kiểu View chung để tránh ClassCastException
-    private View btnHistory, btnFavorite, btnChangePassword, btnUpgrade, btnPolicy;
+    private View btnHistory, btnFavorite, btnChangePassword, btnUpgrade, btnPolicy, btnBecomeCreator;
 
     @Nullable
     @Override
@@ -74,6 +75,7 @@ public class AccountFragment extends Fragment {
 //            btnFavorite = includeLoggedIn.findViewById(R.id.btn_favorite);
             btnChangePassword = includeLoggedIn.findViewById(R.id.btn_change_password);
             btnPolicy = includeLoggedIn.findViewById(R.id.btn_policy);
+            btnBecomeCreator = includeLoggedIn.findViewById(R.id.btn_become_creator);
         }
 
         if (includeLoggedOut != null) {
@@ -97,6 +99,13 @@ public class AccountFragment extends Fragment {
         if (btnHistory != null) btnHistory.setOnClickListener(v -> Toast.makeText(getContext(), "Mở lịch sử!", Toast.LENGTH_SHORT).show());
         if (btnFavorite != null) btnFavorite.setOnClickListener(v -> Toast.makeText(getContext(), "Mở yêu thích!", Toast.LENGTH_SHORT).show());
         if (btnPolicy != null) btnPolicy.setOnClickListener(v -> Toast.makeText(getContext(), "Mở chính sách!", Toast.LENGTH_SHORT).show());
+
+        if (btnBecomeCreator != null) {
+            btnBecomeCreator.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), EkycActivity.class);
+                startActivity(intent);
+            });
+        }
 
         if (btnLogout != null) {
             btnLogout.setOnClickListener(v -> handleLogoutWorkflow());
@@ -123,6 +132,7 @@ public class AccountFragment extends Fragment {
     private void initSecurePreferences() {
         if (getContext() == null) return;
         try {
+            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
             securePrefs = EncryptedSharedPreferences.create(
                     "TaleXSecurePref",
