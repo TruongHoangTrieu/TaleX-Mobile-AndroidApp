@@ -9,14 +9,21 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog; // Bổ sung thư viện tạo Hộp thoại
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CompleteProfileRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.MainActivity;
+// Import EkycActivity mà chúng ta vừa tạo ở bước trước
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc.EkycActivity;
+
 import java.util.Calendar;
 import java.util.Locale;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -103,10 +110,12 @@ public class CompleteProfileActivity extends AppCompatActivity {
                     LoginResponse loginResponse = response.body();
 
                     if (loginResponse.isSuccess() && loginResponse.getData() != null) {
-                        // Lưu token và vào app
+                        // BƯỚC QUAN TRỌNG: Lưu token XONG mới được hiển thị hộp thoại hỏi eKYC
                         saveTokens(loginResponse.getData().getAccessToken(), loginResponse.getData().getRefreshToken());
-                        Toast.makeText(CompleteProfileActivity.this, "Hoàn tất hồ sơ thành công!", Toast.LENGTH_SHORT).show();
-                        navigateToMain();
+
+                        // Gọi hàm hiển thị hộp thoại điều hướng
+                        showEkycPromptDialog();
+
                     } else {
                         Toast.makeText(CompleteProfileActivity.this, loginResponse.getMessage(), Toast.LENGTH_LONG).show();
                     }
@@ -123,6 +132,27 @@ public class CompleteProfileActivity extends AppCompatActivity {
                 Toast.makeText(CompleteProfileActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    /**
+     * CHIẾC CẦU NỐI: Hộp thoại hỏi người dùng có muốn làm eKYC ngay không
+     */
+    private void showEkycPromptDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Cập nhật thành công!")
+                .setMessage("Tài khoản của bạn đã được kích hoạt. Bạn có muốn xác thực danh tính (eKYC) ngay bây giờ để trở thành Nhà sáng tạo (Creator) và mở khóa toàn bộ tính năng không?")
+                .setCancelable(false) // Bắt buộc user phải chọn 1 trong 2 nút
+                .setPositiveButton("Xác minh ngay", (dialog, which) -> {
+                    // Chuyển sang luồng eKYC
+                    Intent intent = new Intent(CompleteProfileActivity.this, EkycActivity.class);
+                    startActivity(intent);
+                    finish(); // Đóng màn hình Complete Profile
+                })
+                .setNegativeButton("Để sau", (dialog, which) -> {
+                    // Chuyển về trang chủ như logic cũ
+                    navigateToMain();
+                })
+                .show();
     }
 
     private void saveTokens(String accessToken, String refreshToken) {

@@ -294,9 +294,14 @@
                 android:orientation="horizontal"
                 android:weightSum="4">
 
-                <LinearLayout style="@style/DraftGridItemStyle">
+                <LinearLayout
+                    android:id="@+id/btn_become_creator"
+                    style="@style/DraftGridItemStyle"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground">
                     <ImageView style="@style/DraftGridIconStyle" android:src="@drawable/ic_search" />
-                    <TextView style="@style/DraftGridTextStyle" android:text="Trở thành tác giả" />
+                    <TextView style="@style/DraftGridTextStyle" android:text="Trở thành Creator" />
                 </LinearLayout>
 
                 <LinearLayout style="@style/DraftGridItemStyle">

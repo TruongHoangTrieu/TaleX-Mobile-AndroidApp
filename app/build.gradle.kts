@@ -67,6 +67,7 @@ android {
     // ◄ 3. BẮT BUỘC PHẢI BẬT KHỐI NÀY ĐỂ SINH FILE BuildConfig CHO CÁC CLASS JAVA GỌI
     buildFeatures {
         buildConfig = true
+        viewBinding = true
     }
 
     compileOptions {
@@ -89,6 +90,11 @@ dependencies {
 
     // Google Sign-In (Credential Manager)
     implementation("com.google.android.gms:play-services-auth:21.3.0")
+// --- BỔ SUNG CAMERAX CHO LUỒNG EKYC ---
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
