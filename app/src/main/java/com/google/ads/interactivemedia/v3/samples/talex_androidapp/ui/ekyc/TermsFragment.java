@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,6 +41,7 @@ public class TermsFragment extends Fragment {
     private CheckBox cbCheckpoint1, cbCheckpoint2;
     private MaterialButton btnAcceptAndContinue;
     private ProgressBar progressBar;
+    private ImageView btnBack;
 
     private ApiService apiService;
     private String currentTermsId = null;
@@ -61,6 +63,7 @@ public class TermsFragment extends Fragment {
         cbCheckpoint2 = view.findViewById(R.id.cbCheckpoint2);
         btnAcceptAndContinue = view.findViewById(R.id.btnAcceptAndContinue);
         progressBar = view.findViewById(R.id.progressBar);
+        btnBack = view.findViewById(R.id.btnBack);
 
         // Khởi tạo ApiService chuẩn theo cấu trúc dự án của bạn
         apiService = ApiClient.getApiService();
@@ -75,6 +78,14 @@ public class TermsFragment extends Fragment {
 
         // 3. Lắng nghe sự kiện Nút bấm
         btnAcceptAndContinue.setOnClickListener(v -> submitCreatorRegistration());
+        
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                    getActivity().finish();
+                }
+            });
+        }
 
         // 4. Bắt đầu gọi API lấy dữ liệu điều khoản
         fetchActiveTerms();
@@ -176,15 +187,12 @@ public class TermsFragment extends Fragment {
     }
 
     private void navigateToCameraFragment(String kycSessionId) {
-        // Lưu ý: Lớp CameraEkycFragment sẽ báo đỏ vì chúng ta chưa tạo nó.
         CameraEkycFragment cameraFragment = new CameraEkycFragment();
 
         Bundle bundle = new Bundle();
         bundle.putString("KYC_SESSION_ID", kycSessionId);
         cameraFragment.setArguments(bundle);
 
-        // Tôi giả định FrameLayout chứa các fragment ở MainActivity của bạn có ID là fragment_container.
-        // Nếu tên khác, hãy sửa lại R.id.fragment_container cho đúng.
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, cameraFragment)
                 .addToBackStack(null)
@@ -194,5 +202,6 @@ public class TermsFragment extends Fragment {
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         btnAcceptAndContinue.setEnabled(!isLoading && cbCheckpoint1.isChecked() && cbCheckpoint2.isChecked());
+        if (btnBack != null) btnBack.setEnabled(!isLoading);
     }
 }

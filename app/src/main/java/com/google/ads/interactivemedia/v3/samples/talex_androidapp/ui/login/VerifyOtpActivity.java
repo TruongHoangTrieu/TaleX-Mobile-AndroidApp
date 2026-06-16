@@ -5,13 +5,14 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.text.Editable;
-
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
-
+import android.view.View; // Đã thêm để ẩn/hiện VISIBLE, GONE
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar; // Đã thêm cho vòng xoay loading
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,7 +25,7 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiC
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.VerifyEmailRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResendOtpRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterResponse; // ◄ Đã bổ sung dòng import chí mạng này
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.MainActivity;
 
 import java.io.IOException;
@@ -37,7 +38,8 @@ import retrofit2.Response;
 public class VerifyOtpActivity extends AppCompatActivity {
     private EditText otp1, otp2, otp3, otp4, otp5, otp6;
     private Button btnVerify;
-    private TextView txtResend, txtEmail;
+    private ProgressBar pbOtpLoading; // Thêm biến vòng xoay loading
+    private TextView txtResend, txtEmail, tvErrorMessage; // Thêm biến hiển thị lỗi thực tế
     private String verificationToken;
     private CountDownTimer countDownTimer;
 
@@ -56,6 +58,7 @@ public class VerifyOtpActivity extends AppCompatActivity {
         otp5 = findViewById(R.id.otp5);
         otp6 = findViewById(R.id.otp6);
 
+        // Khởi tạo logic chuyển ô nhảy tự động
         setupOtpInputLogic(otp1, otp2, null);
         setupOtpInputLogic(otp2, otp3, otp1);
         setupOtpInputLogic(otp3, otp4, otp2);
@@ -64,6 +67,8 @@ public class VerifyOtpActivity extends AppCompatActivity {
         setupOtpInputLogic(otp6, null, otp5);
 
         btnVerify = findViewById(R.id.btnVerify);
+        pbOtpLoading = findViewById(R.id.pb_otp_loading);
+        tvErrorMessage = findViewById(R.id.tv_otp_error_message);
         txtResend = findViewById(R.id.txtResend);
         txtEmail = findViewById(R.id.txtEmail);
         ImageView btnBack = findViewById(R.id.btnBack);
@@ -79,20 +84,8 @@ public class VerifyOtpActivity extends AppCompatActivity {
 
         startCountdown();
 
-        btnVerify.setOnClickListener(v -> {
-            String otp = otp1.getText().toString()
-                    + otp2.getText().toString()
-                    + otp3.getText().toString()
-                    + otp4.getText().toString()
-                    + otp5.getText().toString()
-                    + otp6.getText().toString();
-
-            if (otp.length() == 6) {
-                executeVerifyEmailApi(verificationToken, otp);
-            } else {
-                Toast.makeText(this, "Vui lòng nhập đủ 6 số OTP!", Toast.LENGTH_SHORT).show();
-            }
-        });
+        // Nút bấm này đóng vai trò dự phòng nếu người dùng bấm thủ công
+        btnVerify.setOnClickListener(v -> checkAndExecuteOtp());
 
         txtResend.setOnClickListener(v -> {
             if (!txtResend.isEnabled()) return;
@@ -100,45 +93,61 @@ public class VerifyOtpActivity extends AppCompatActivity {
         });
     }
 
+    // Hàm kiểm tra chuỗi mã OTP hiện tại
+    private void checkAndExecuteOtp() {
+        String otp = otp1.getText().toString()
+                + otp2.getText().toString()
+                + otp3.getText().toString()
+                + otp4.getText().toString()
+                + otp5.getText().toString()
+                + otp6.getText().toString();
+
+        if (otp.length() == 6) {
+            executeVerifyEmailApi(verificationToken, otp);
+        } else {
+            triggerOtpError("Vui lòng nhập đủ 6 số OTP!", true);
+        }
+    }
+
+    // ── API: Thực hiện kiểm tra mã xác thực Email ───────────────────
     private void executeVerifyEmailApi(String token, String otp) {
-        btnVerify.setEnabled(false);
-        btnVerify.setText("ĐANG KIỂM TRA...");
+        showOtpLoading(true);
 
         VerifyEmailRequest request = new VerifyEmailRequest(token, otp);
 
         ApiClient.getApiService().verifyEmail(request).enqueue(new Callback<LoginResponse>() {
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
-                btnVerify.setEnabled(true);
-                btnVerify.setText("XÁC MINH NGAY");
+                showOtpLoading(false);
 
                 if (response.isSuccessful() && response.body() != null) {
                     LoginResponse loginResponse = response.body();
                     if (loginResponse.isSuccess() && loginResponse.getData() != null) {
                         saveTokens(loginResponse.getData().getAccessToken(), loginResponse.getData().getRefreshToken());
-                        Toast.makeText(VerifyOtpActivity.this, "Kích hoạt tài khoản thành công!", Toast.LENGTH_LONG).show();
 
+                        // Đi thẳng vào màn hình chính, dẹp bỏ thông báo Toast rườm rà
                         Intent intent = new Intent(VerifyOtpActivity.this, MainActivity.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                         finish();
                     } else {
-                        Toast.makeText(VerifyOtpActivity.this, loginResponse.getMessage(), Toast.LENGTH_LONG).show();
+                        // Nhập sai mã OTP -> Báo chữ lỗi đỏ rực và ép 6 ô đổi màu cảnh báo
+                        triggerOtpError(loginResponse.getMessage(), true);
                     }
                 } else {
-                    Toast.makeText(VerifyOtpActivity.this, "Mã OTP không đúng hoặc đã hết hạn!", Toast.LENGTH_SHORT).show();
+                    triggerOtpError("Mã OTP không đúng hoặc đã hết hạn!", true);
                 }
             }
 
             @Override
             public void onFailure(Call<LoginResponse> call, Throwable t) {
-                btnVerify.setEnabled(true);
-                btnVerify.setText("XÁC MINH NGAY");
-                Toast.makeText(VerifyOtpActivity.this, "Lỗi kết nối!", Toast.LENGTH_SHORT).show();
+                showOtpLoading(false);
+                triggerOtpError("Lỗi mạng, không thể kết nối server!", false);
             }
         });
     }
 
+    // ── API: Gửi lại mã OTP mới ─────────────────────────────────────
     private void executeResendOtpApi() {
         if (verificationToken == null) return;
 
@@ -149,18 +158,22 @@ public class VerifyOtpActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<RegisterResponse> call, Response<RegisterResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
+                    // Dọn lỗi giao diện cũ nếu có trước đó
+                    if (tvErrorMessage != null) tvErrorMessage.setVisibility(View.GONE);
+                    triggerOtpFieldsErrorState(false);
+
                     Toast.makeText(VerifyOtpActivity.this, "Mã OTP mới đã được gửi về Email!", Toast.LENGTH_SHORT).show();
                     startCountdown();
                 } else {
                     txtResend.setEnabled(true);
-                    Toast.makeText(VerifyOtpActivity.this, "Gửi lại OTP thất bại! Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
+                    triggerOtpError("Gửi lại OTP thất bại! Vui lòng thử lại.", false);
                 }
             }
 
             @Override
             public void onFailure(Call<RegisterResponse> call, Throwable t) {
                 txtResend.setEnabled(true);
-                Toast.makeText(VerifyOtpActivity.this, "Lỗi mạng, không thể kết nối hệ thống!", Toast.LENGTH_SHORT).show();
+                triggerOtpError("Lỗi mạng, không thể kết nối hệ thống!", false);
             }
         });
     }
@@ -205,10 +218,10 @@ public class VerifyOtpActivity extends AppCompatActivity {
 
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Lỗi bảo mật khi lưu Token!", Toast.LENGTH_SHORT).show();
         }
     }
 
+    // ── 🟢 HÀM LẮNG NGHE VÀ TỰ ĐỘNG CHUYỂN Ô / TỰ ĐỘNG VÀO LUÔN ──────────────────
     private void setupOtpInputLogic(EditText current, EditText next, EditText previous) {
         current.addTextChangedListener(new TextWatcher() {
             @Override
@@ -216,8 +229,17 @@ public class VerifyOtpActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (s.length() == 1 && next != null) {
-                    next.requestFocus();
+                // Người dùng bắt đầu chỉnh sửa -> Tự xóa thông báo lỗi cũ cho thoáng UI
+                if (tvErrorMessage != null) tvErrorMessage.setVisibility(View.GONE);
+                triggerOtpFieldsErrorState(false);
+
+                if (s.length() == 1) {
+                    if (next != null) {
+                        next.requestFocus(); // Nhảy sang ô tiếp theo
+                    } else {
+                        // ⚡ KHI ĐÃ ĐIỀN ĐẾN Ô CUỐI CÙNG (ô số 6): Tự động lấy text và kiểm tra kích hoạt API luôn
+                        checkAndExecuteOtp();
+                    }
                 }
             }
 
@@ -235,6 +257,44 @@ public class VerifyOtpActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    // ── Hàm bổ trợ: Điều khiển ẩn/hiện nút bấm và vòng xoay tải ──────────
+    private void showOtpLoading(boolean isLoading) {
+        if (isLoading) {
+            if (tvErrorMessage != null) tvErrorMessage.setVisibility(View.GONE);
+            if (btnVerify != null) {
+                btnVerify.setText("");
+                btnVerify.setEnabled(false);
+            }
+            if (pbOtpLoading != null) pbOtpLoading.setVisibility(View.VISIBLE);
+        } else {
+            if (btnVerify != null) {
+                btnVerify.setText("XÁC MINH");
+                btnVerify.setEnabled(true);
+            }
+            if (pbOtpLoading != null) pbOtpLoading.setVisibility(View.GONE);
+        }
+    }
+
+    // ── Hàm bổ trợ: Bật trạng thái lỗi văn bản và màu ô rực đỏ ───────────
+    private void triggerOtpError(String message, boolean changeFieldsToRed) {
+        if (tvErrorMessage != null) {
+            tvErrorMessage.setText(message);
+            tvErrorMessage.setVisibility(View.VISIBLE);
+        }
+        triggerOtpFieldsErrorState(changeFieldsToRed);
+    }
+
+    // Hàm chuyển đổi background của 6 ô OTP đồng loạt (Đỏ / Xám mặc định)
+    private void triggerOtpFieldsErrorState(boolean isError) {
+        int resId = isError ? R.drawable.bg_input_error : R.drawable.bg_otp;
+        if (otp1 != null) otp1.setBackgroundResource(resId);
+        if (otp2 != null) otp2.setBackgroundResource(resId);
+        if (otp3 != null) otp3.setBackgroundResource(resId);
+        if (otp4 != null) otp4.setBackgroundResource(resId);
+        if (otp5 != null) otp5.setBackgroundResource(resId);
+        if (otp6 != null) otp6.setBackgroundResource(resId);
     }
 
     @Override
