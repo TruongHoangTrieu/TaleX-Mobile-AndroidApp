@@ -31,8 +31,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:src="@drawable/ic_arrow_back"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent"
         app:tint="#FFFFFF" />
 
     <ScrollView
@@ -70,24 +69,27 @@
                 android:textColor="#CCCCCC"
                 android:textSize="13sp" />
 
+            <!-- Ô Nhập Email -->
             <EditText
                 android:id="@+id/edt_email"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="24dp"
                 android:background="@drawable/bg_input_rounded"
-                android:hint="Nhập email hoặc số điện thoại"
+                android:hint="Email"
                 android:inputType="textEmailAddress"
                 android:paddingHorizontal="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#88FFFFFF"
                 android:textSize="14sp" />
 
+            <!-- Ô Nhập Mật Khẩu -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_rounded"
+                android:addStatesFromChildren="true"
                 android:paddingHorizontal="16dp">
                 <EditText
                     android:id="@+id/edt_password"
@@ -113,33 +115,65 @@
                     app:tint="#88FFFFFF" />
             </RelativeLayout>
 
-            <Button
-                android:id="@+id/btn_login_submit"
+            <!-- 🟢 VỊ TRÍ MỚI HỢP LÝ: Dòng chữ báo lỗi nằm ngay dưới ô mật khẩu, trên nút bấm -->
+            <TextView
+                android:id="@+id/tv_error_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Tài khoản hoặc mật khẩu không chính xác!"
+                android:textColor="#FF5252"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="start"
+                android:paddingHorizontal="4dp"
+                android:visibility="gone" />
+
+            <!-- Nút Đăng Nhập bọc Loading tiến trình -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="20dp"
-                android:backgroundTint="#D4AF37"
-                android:text="ĐĂNG NHẬP"
-                android:textColor="#121212"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                app:cornerRadius="6dp" />
+                android:layout_marginTop="16dp">
 
+                <Button
+                    android:id="@+id/btn_login_submit"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:backgroundTint="#D4AF37"
+                    android:text="ĐĂNG NHẬP"
+                    android:textColor="#121212"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="6dp" />
+
+                <ProgressBar
+                    android:id="@+id/pb_login_loading"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="#121212"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <!-- Nút Quên mật khẩu -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="20dp"
                 android:text="Quên mật khẩu"
                 android:textColor="#A52A2A"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="4dp"/>
 
+            <!-- Thanh phân cách -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
+                android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -162,11 +196,12 @@
                     android:background="#55FFFFFF" />
             </LinearLayout>
 
+            <!-- Nút Google -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_social_gg"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="20dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground"
@@ -196,6 +231,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Điều khoản bảo mật -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -204,11 +240,12 @@
                 android:textColor="#88FFFFFF"
                 android:textSize="12sp" />
 
+            <!-- Nút Điều hướng sang Đăng ký -->
             <TextView
                 android:id="@+id/txt_goto_register"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="20dp"
                 android:layout_marginBottom="16dp"
                 android:padding="8dp"
                 android:text="Chưa có tài khoản? Đăng ký"

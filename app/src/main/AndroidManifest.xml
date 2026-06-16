@@ -64,7 +64,9 @@
         <activity
             android:name=".ui.login.ResetPasswordActivity"
             android:exported="false" />
-
-    </application>
+        <activity
+            android:name=".ui.account.ProfileDetailActivity"
+            android:exported="false" />
+             </application>
 
 </manifest>

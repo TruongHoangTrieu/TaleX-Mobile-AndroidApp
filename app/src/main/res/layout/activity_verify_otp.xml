@@ -2,31 +2,34 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#121212">
 
-    <!-- Back -->
+    <!-- Nút Back quay lại -->
     <ImageView
         android:id="@+id/btnBack"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_margin="20dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
         android:src="@drawable/ic_arrow_back"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="#FFFFFF" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:paddingHorizontal="24dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintVertical_bias="0.35">
 
-        <!-- Icon -->
-
+        <!-- Icon/Logo ứng dụng -->
         <ImageView
             android:layout_width="120dp"
             android:layout_height="wrap_content"
@@ -35,126 +38,184 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:text="Xác thực Email"
             android:textColor="#FFFFFF"
             android:textSize="28sp"
-            android:textStyle="bold"/>
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="8dp"
             android:gravity="center"
             android:text="Nhập mã xác thực gồm 6 chữ số đã được gửi tới"
-            android:textColor="#BDBDBD"
-            android:textSize="14sp"/>
+            android:textColor="#CCCCCC"
+            android:textSize="13sp" />
 
+        <!-- Hiển thị Email nhận OTP -->
         <TextView
             android:id="@+id/txtEmail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#FFD54F"
+            android:layout_marginTop="4dp"
+            android:textColor="#D4AF37"
+            android:textSize="14sp"
             android:textStyle="bold"
-            android:textSize="14sp"/>
+            tools:text="your_email@gmail.com" />
 
-        <!-- OTP BOXES -->
+        <!-- KHỐI 6 Ô NHẬP OTP -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="28dp"
             android:orientation="horizontal">
 
+            <!-- Ô 1 -->
             <EditText
                 android:id="@+id/otp1"
-                android:layout_width="48dp"
-                android:layout_height="56dp"
+                android:layout_width="44dp"
+                android:layout_height="52dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_otp"
-                android:gravity="center"
                 android:digits="0123456789"
+                android:gravity="center"
+                android:textAlignment="center"
                 android:inputType="number"
                 android:maxLength="1"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"/>
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:cursorVisible="false" />
 
+            <!-- Ô 2 -->
             <EditText
                 android:id="@+id/otp2"
-                android:layout_width="48dp"
-                android:layout_height="56dp"
+                android:layout_width="44dp"
+                android:layout_height="52dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_otp"
-                android:gravity="center"
                 android:digits="0123456789"
+                android:gravity="center"
+                android:textAlignment="center"
                 android:inputType="number"
                 android:maxLength="1"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"/>
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:cursorVisible="false" />
 
+            <!-- Ô 3 -->
             <EditText
                 android:id="@+id/otp3"
-                android:layout_width="48dp"
-                android:layout_height="56dp"
+                android:layout_width="44dp"
+                android:layout_height="52dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_otp"
-                android:gravity="center"
                 android:digits="0123456789"
+                android:gravity="center"
+                android:textAlignment="center"
                 android:inputType="number"
                 android:maxLength="1"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"/>
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:cursorVisible="false" />
 
+            <!-- Ô 4 -->
             <EditText
                 android:id="@+id/otp4"
-                android:layout_width="48dp"
-                android:layout_height="56dp"
+                android:layout_width="44dp"
+                android:layout_height="52dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_otp"
-                android:gravity="center"
                 android:digits="0123456789"
+                android:gravity="center"
+                android:textAlignment="center"
                 android:inputType="number"
                 android:maxLength="1"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"/>
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:cursorVisible="false" />
 
+            <!-- Ô 5 -->
             <EditText
                 android:id="@+id/otp5"
-                android:layout_width="48dp"
-                android:layout_height="56dp"
+                android:layout_width="44dp"
+                android:layout_height="52dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_otp"
-                android:gravity="center"
                 android:digits="0123456789"
+                android:gravity="center"
+                android:textAlignment="center"
                 android:inputType="number"
                 android:maxLength="1"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"/>
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:cursorVisible="false" />
 
+            <!-- Ô 6 -->
             <EditText
                 android:id="@+id/otp6"
-                android:layout_width="48dp"
-                android:layout_height="56dp"
+                android:layout_width="44dp"
+                android:layout_height="52dp"
                 android:layout_margin="4dp"
                 android:background="@drawable/bg_otp"
-                android:gravity="center"
                 android:digits="0123456789"
+                android:gravity="center"
+                android:textAlignment="center"
                 android:inputType="number"
                 android:maxLength="1"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"/>
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:cursorVisible="false" />
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btnVerify"
+        <!-- 🟢 Dòng chữ báo lỗi hệ thống nằm ngay trên nút bấm -->
+        <TextView
+            android:id="@+id/tv_otp_error_message"
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:layout_marginTop="36dp"
-            android:text="XÁC MINH"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="#FF5252"
+            android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#000000"
-            android:backgroundTint="#FFD54F"/>
+            android:gravity="center"
+            android:visibility="gone"
+            tools:text="Mã xác thực không chính xác hoặc đã hết hạn!"
+            tools:visibility="visible" />
 
+        <!-- Khối nút Xác Minh bọc Vòng quay Loading -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp">
+
+            <Button
+                android:id="@+id/btnVerify"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:backgroundTint="#D4AF37"
+                android:text="XÁC MINH"
+                android:textColor="#121212"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:cornerRadius="6dp" />
+
+            <ProgressBar
+                android:id="@+id/pb_otp_loading"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="#121212"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Nút Gửi lại mã -->
         <TextView
             android:id="@+id/txtResend"
             android:layout_width="wrap_content"
@@ -162,8 +223,10 @@
             android:layout_marginTop="20dp"
             android:text="Gửi lại sau 00:30"
             android:textColor="#9E9E9E"
-            android:textSize="14sp"/>
+            android:textSize="14sp"
+            android:clickable="false"
+            android:focusable="false"
+            android:padding="4dp" />
 
     </LinearLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

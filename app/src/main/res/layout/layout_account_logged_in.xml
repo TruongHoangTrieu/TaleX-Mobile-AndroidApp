@@ -383,13 +383,15 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <LinearLayout style="@style/AccountMenuItemStyle">
+            <LinearLayout android:id="@+id/btn_menu_profile" style="@style/AccountMenuItemStyle">
+
                 <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_nav_account" />
                 <TextView style="@style/AccountMenuTextStyle" android:text="Hồ sơ cá nhân" />
             </LinearLayout>
             <View style="@style/AccountMenuDividerStyle" />
 
             <LinearLayout style="@style/AccountMenuItemStyle">
+
                 <ImageView style="@style/AccountMenuIconStyle" android:src="@drawable/ic_comment" />
                 <TextView style="@style/AccountMenuTextStyle" android:text="Bình luận của tôi" />
             </LinearLayout>
