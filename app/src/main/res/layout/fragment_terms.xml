@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Điều khoản Creator"
+        android:textColor="#D4AF37"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ScrollView
+        android:id="@+id/scrollViewTerms"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#1E1E1E"
+        android:padding="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/cbCheckpoint1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvTitle">
+
+        <TextView
+            android:id="@+id/tvTermsContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#E0E0E0"
+            android:textSize="14sp"
+            android:lineSpacingExtra="4dp"
+            tools:text="Đang tải điều khoản từ hệ thống..." />
+    </ScrollView>
+
+    <CheckBox
+        android:id="@+id/cbCheckpoint1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Tôi đã đọc và đồng ý với các điều khoản trên."
+        android:textColor="#FFFFFF"
+        android:buttonTint="#D4AF37"
+        app:layout_constraintBottom_toTopOf="@+id/cbCheckpoint2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <CheckBox
+        android:id="@+id/cbCheckpoint2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Tôi cam kết cung cấp thông tin định danh (CCCD/Khuôn mặt) chính chủ và trung thực."
+        android:textColor="#FFFFFF"
+        android:buttonTint="#D4AF37"
+        app:layout_constraintBottom_toTopOf="@+id/btnAcceptAndContinue"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAcceptAndContinue"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:text="Xác nhận &amp; Bắt đầu định danh"
+        android:textColor="#121212"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:enabled="false"
+        app:backgroundTint="#D4AF37"
+        app:cornerRadius="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:indeterminateTint="#D4AF37"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
