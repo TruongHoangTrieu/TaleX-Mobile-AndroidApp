@@ -6,10 +6,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#121212"
-    tools:ignore="HardcodedText"> <androidx.camera.view.PreviewView
-    android:id="@+id/viewFinder"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    tools:ignore="HardcodedText">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/viewFinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <ImageView
         android:id="@+id/ivFreezeFrame"
@@ -17,7 +19,9 @@
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:visibility="gone"
-        android:importantForAccessibility="no" /> <View
+        android:importantForAccessibility="no" />
+
+    <View
         android:id="@+id/dimTop"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -117,14 +121,14 @@
             android:id="@+id/btnCapture"
             android:layout_width="80dp"
             android:layout_height="80dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginBottom="48dp"
             android:background="@drawable/bg_capture_outer"
             android:clickable="true"
             android:focusable="true"
             android:contentDescription="Nút chụp ảnh"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tvSubInstruction">
+            app:layout_constraintStart_toStartOf="parent">
 
             <View
                 android:layout_width="56dp"
