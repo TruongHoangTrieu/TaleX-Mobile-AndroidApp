@@ -47,7 +47,7 @@ public class AccountFragment extends Fragment {
     private TextView tvFullName, tvRoleName, tvUsername, tvEmail, tvPhone, tvDob;
 
     // Đã sửa: Gom toàn bộ các nút dạng Khối/LinearLayout thành kiểu View chung để tránh ClassCastException
-    private View btnHistory, btnFavorite, btnChangePassword, btnUpgrade, btnPolicy, btnBecomeCreator;
+    private View btnHistory, btnFavorite, btnChangePassword, btnUpgrade, btnPolicy, btnBecomeCreator, btnMenuProfile;
 
     @Nullable
     @Override
@@ -76,6 +76,7 @@ public class AccountFragment extends Fragment {
             btnChangePassword = includeLoggedIn.findViewById(R.id.btn_change_password);
             btnPolicy = includeLoggedIn.findViewById(R.id.btn_policy);
             btnBecomeCreator = includeLoggedIn.findViewById(R.id.btn_become_creator);
+            btnMenuProfile = includeLoggedIn.findViewById(R.id.btn_menu_profile);
         }
 
         if (includeLoggedOut != null) {
@@ -106,7 +107,12 @@ public class AccountFragment extends Fragment {
                 startActivity(intent);
             });
         }
-
+        if (btnMenuProfile != null) {
+            btnMenuProfile.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), ProfileDetailActivity.class);
+                startActivity(intent);
+            });
+        }
         if (btnLogout != null) {
             btnLogout.setOnClickListener(v -> handleLogoutWorkflow());
         }

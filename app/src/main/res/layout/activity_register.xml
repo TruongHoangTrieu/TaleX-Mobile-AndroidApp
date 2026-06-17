@@ -70,6 +70,7 @@
                 android:textColor="#CCCCCC"
                 android:textSize="13sp" />
 
+            <!-- Họ và tên -->
             <EditText
                 android:id="@+id/edt_register_fullname"
                 android:layout_width="match_parent"
@@ -81,8 +82,10 @@
                 android:paddingHorizontal="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#88FFFFFF"
+                android:textCursorDrawable="@null"
                 android:textSize="14sp" />
 
+            <!-- Username -->
             <EditText
                 android:id="@+id/edt_register_username"
                 android:layout_width="match_parent"
@@ -94,8 +97,10 @@
                 android:paddingHorizontal="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#88FFFFFF"
+                android:textCursorDrawable="@null"
                 android:textSize="14sp" />
 
+            <!-- Email -->
             <EditText
                 android:id="@+id/edt_register_email"
                 android:layout_width="match_parent"
@@ -107,8 +112,10 @@
                 android:paddingHorizontal="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#88FFFFFF"
+                android:textCursorDrawable="@null"
                 android:textSize="14sp" />
 
+            <!-- Số điện thoại -->
             <EditText
                 android:id="@+id/edt_register_phone"
                 android:layout_width="match_parent"
@@ -120,8 +127,10 @@
                 android:paddingHorizontal="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#88FFFFFF"
+                android:textCursorDrawable="@null"
                 android:textSize="14sp" />
 
+            <!-- Ngày sinh -->
             <EditText
                 android:id="@+id/edt_register_dob"
                 android:layout_width="match_parent"
@@ -136,11 +145,13 @@
                 android:clickable="true"
                 android:cursorVisible="false"/>
 
+            <!-- Mật khẩu -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_rounded"
+                android:addStatesFromChildren="true"
                 android:paddingHorizontal="16dp">
                 <EditText
                     android:id="@+id/edt_register_password"
@@ -152,6 +163,7 @@
                     android:inputType="textPassword"
                     android:textColor="#FFFFFF"
                     android:textColorHint="#88FFFFFF"
+                    android:textCursorDrawable="@null"
                     android:textSize="14sp" />
                 <ImageView
                     android:id="@+id/img_register_eye1"
@@ -160,14 +172,19 @@
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:src="@drawable/ic_eye_close"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"
                     app:tint="#88FFFFFF" />
             </RelativeLayout>
 
+            <!-- Xác nhận mật khẩu -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_input_rounded"
+                android:addStatesFromChildren="true"
                 android:paddingHorizontal="16dp">
                 <EditText
                     android:id="@+id/edt_register_confirm_password"
@@ -179,6 +196,7 @@
                     android:inputType="textPassword"
                     android:textColor="#FFFFFF"
                     android:textColorHint="#88FFFFFF"
+                    android:textCursorDrawable="@null"
                     android:textSize="14sp" />
                 <ImageView
                     android:id="@+id/img_register_eye2"
@@ -187,20 +205,50 @@
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:src="@drawable/ic_eye_close"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"
                     app:tint="#88FFFFFF" />
             </RelativeLayout>
 
-            <Button
-                android:id="@+id/btn_register_submit"
+            <!-- 🟢 Dòng chữ lỗi hệ thống nằm sát lề trái, ngay trên nút bấm -->
+            <TextView
+                android:id="@+id/tv_register_error_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="#FF5252"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="start"
+                android:paddingHorizontal="4dp"
+                android:visibility="gone" />
+
+            <!-- Nút Đăng Ký tích hợp vòng quay tiến trình -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="20dp"
-                android:backgroundTint="#D4AF37"
-                android:text="ĐĂNG KÝ"
-                android:textColor="#121212"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                app:cornerRadius="6dp" />
+                android:layout_marginTop="16dp">
+
+                <Button
+                    android:id="@+id/btn_register_submit"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:backgroundTint="#D4AF37"
+                    android:text="ĐĂNG KÝ"
+                    android:textColor="#121212"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="6dp" />
+
+                <ProgressBar
+                    android:id="@+id/pb_register_loading"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="#121212"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/txt_goto_login"

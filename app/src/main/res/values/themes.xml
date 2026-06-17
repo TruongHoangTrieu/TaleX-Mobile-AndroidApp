@@ -99,4 +99,24 @@
         <item name="android:textStyle">bold</item>
     </style>
 
+    <style name="TaleXDatePickerTheme" parent="Theme.AppCompat.DayNight.Dialog">
+        <item name="android:headerBackground">#A52A2A</item>
+        <item name="android:colorAccent">#D4AF37</item>
+        <item name="colorControlActivated">#D4AF37</item>
+        <item name="colorPrimary">#A52A2A</item>
+        <item name="android:windowBackground">#161618</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#888888</item>
+
+        <!-- 🟢 ÉP MÀU RIÊNG CHO 2 NÚT OK / CANCEL -->
+        <item name="android:buttonBarButtonStyle">@style/TaleXDatePickerButtons</item>
+    </style>
+
+    <!-- Style phụ để định hình chữ cho 2 nút bấm dưới đáy lịch -->
+    <style name="TaleXDatePickerButtons" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <!-- Bạn muốn chữ màu Vàng Gold thì để #D4AF37, muốn Trắng tinh thì để #FFFFFF nhé -->
+        <item name="android:textColor">#D4AF37</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">14sp</item>
+    </style>
 </resources>

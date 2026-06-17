@@ -7,6 +7,7 @@ public class ProfileResponse {
 
     public boolean isSuccess() { return success; }
     public UserData getData() { return data; }
+    public String getMessage() { return message; }
 
     public static class UserData {
         private String username;
