@@ -1,14 +1,11 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc;
 
 import android.Manifest;
-import android.app.Activity;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,7 +15,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -28,6 +24,13 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.video.FileOutputOptions;
+import androidx.camera.video.Quality;
+import androidx.camera.video.QualitySelector;
+import androidx.camera.video.Recorder;
+import androidx.camera.video.Recording;
+import androidx.camera.video.VideoCapture;
+import androidx.camera.video.VideoRecordEvent;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -42,9 +45,7 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.utils.ImageCo
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -70,11 +71,15 @@ public class CameraEkycFragment extends Fragment {
     private ProgressBar progressBar;
     private ImageView btnBack;
 
-    // CameraX
+    // CameraX Core
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-    private ImageCapture imageCapture;
     private ExecutorService cameraExecutor;
     private ProcessCameraProvider cameraProvider;
+
+    // CameraX UseCases
+    private ImageCapture imageCapture; // Dùng cho B1, B2
+    private VideoCapture<Recorder> videoCapture; // Dùng cho B3
+    private Recording currentRecording = null; // Trạng thái đang quay video
 
     // Logic State
     private String kycSessionId;
@@ -82,9 +87,7 @@ public class CameraEkycFragment extends Fragment {
     private int currentStep = 1;
     private File frontCroppedFile = null;
 
-    // Launchers
-    private ActivityResultLauncher<Intent> videoCaptureLauncher;
-    private ActivityResultLauncher<String> requestPermissionLauncher;
+    private ActivityResultLauncher<String[]> requestPermissionsLauncher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -95,26 +98,18 @@ public class CameraEkycFragment extends Fragment {
             kycSessionId = getArguments().getString("KYC_SESSION_ID");
         }
 
-        requestPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) {
-                        startCamera();
-                    } else {
-                        Toast.makeText(requireContext(), "Cần cấp quyền Máy ảnh", Toast.LENGTH_LONG).show();
-                        getParentFragmentManager().popBackStack();
-                    }
-                }
-        );
+        // Đã sửa: Phải xin quyền cả CAMERA và AUDIO vì quay video liveness cần ghi âm
+        requestPermissionsLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                permissions -> {
+                    Boolean cameraGranted = permissions.getOrDefault(Manifest.permission.CAMERA, false);
+                    Boolean audioGranted = permissions.getOrDefault(Manifest.permission.RECORD_AUDIO, false);
 
-        videoCaptureLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                (ActivityResult result) -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        Uri videoUri = result.getData().getData();
-                        uploadLiveness(videoUri);
+                    if (cameraGranted && audioGranted) {
+                        startCameraForCurrentStep();
                     } else {
-                        Toast.makeText(requireContext(), "Đã hủy quay video", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "Cần cấp quyền Máy ảnh và Ghi âm", Toast.LENGTH_LONG).show();
+                        getParentFragmentManager().popBackStack();
                     }
                 }
         );
@@ -143,21 +138,29 @@ public class CameraEkycFragment extends Fragment {
 
         setupUIForStep(currentStep);
 
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            startCamera();
+        if (allPermissionsGranted()) {
+            startCameraForCurrentStep();
         } else {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA);
+            requestPermissionsLauncher.launch(new String[]{
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.RECORD_AUDIO
+            });
         }
 
         btnCapture.setOnClickListener(v -> {
             if (currentStep == 1 || currentStep == 2) {
                 takePhoto();
             } else if (currentStep == 3) {
-                startVideoRecording();
+                captureVideo();
             }
         });
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+    }
+
+    private boolean allPermissionsGranted() {
+        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void setupUIForStep(int step) {
@@ -179,34 +182,46 @@ public class CameraEkycFragment extends Fragment {
 
         } else if (step == 3) {
             tvStepInstruction.setText("Bước 3/3: Xác thực khuôn mặt");
-            tvSubInstruction.setText("Nhấn nút để quay video khuôn mặt (3-5 giây).");
+            tvSubInstruction.setText("Nhấn nút để bắt đầu quay video khuôn mặt (3-5 giây).");
 
             frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_face_frame);
             ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
-            int size = (int) (300 * getResources().getDisplayMetrics().density);
+            // ĐÃ SỬA: Giảm kích thước khung tròn xuống 260dp để không bị vỡ font chữ
+            int size = (int) (260 * getResources().getDisplayMetrics().density);
             params.width = size;
             params.height = size;
             frameIdCard.setLayoutParams(params);
-
-            if (cameraProvider != null) {
-                cameraProvider.unbindAll();
-            }
         }
     }
 
-    private void startCamera() {
+    /**
+     * Khởi động Camera linh hoạt dựa trên Bước hiện tại (Mặt trước/Mặt sau -> Cam sau, Liveness -> Cam trước)
+     */
+    private void startCameraForCurrentStep() {
         cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
         cameraProviderFuture.addListener(() -> {
             try {
                 cameraProvider = cameraProviderFuture.get();
+                cameraProvider.unbindAll(); // Reset toàn bộ
+
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
 
-                imageCapture = new ImageCapture.Builder().build();
-                CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+                if (currentStep == 1 || currentStep == 2) {
+                    // Dùng Camera Sau để chụp ảnh
+                    imageCapture = new ImageCapture.Builder().build();
+                    CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+                    cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, imageCapture);
 
-                cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, imageCapture);
+                } else if (currentStep == 3) {
+                    // Dùng Camera Trước để quay Video (Chất lượng HD 720p để đảm bảo dung lượng < 15MB)
+                    Recorder recorder = new Recorder.Builder()
+                            .setQualitySelector(QualitySelector.from(Quality.HD))
+                            .build();
+                    videoCapture = VideoCapture.withOutput(recorder);
+                    CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
+                    cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, videoCapture);
+                }
 
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Lỗi khởi tạo camera", e);
@@ -249,6 +264,55 @@ public class CameraEkycFragment extends Fragment {
         });
     }
 
+    /**
+     * Logic quay video trực tiếp trong App
+     */
+    private void captureVideo() {
+        if (videoCapture == null) return;
+
+        // Nếu đang quay rồi thì bấm phát nữa là Dừng lại
+        if (currentRecording != null) {
+            currentRecording.stop();
+            currentRecording = null;
+            return;
+        }
+
+        // Bắt đầu quay
+        File videoFile = new File(requireContext().getCacheDir(), "liveness_" + System.currentTimeMillis() + ".mp4");
+        FileOutputOptions outputOptions = new FileOutputOptions.Builder(videoFile).build();
+
+        try {
+            currentRecording = videoCapture.getOutput()
+                    .prepareRecording(requireContext(), outputOptions)
+                    .withAudioEnabled()
+                    .start(ContextCompat.getMainExecutor(requireContext()), videoRecordEvent -> {
+                        if (videoRecordEvent instanceof VideoRecordEvent.Start) {
+                            // UI: Đổi text hướng dẫn để user biết đang quay
+                            tvSubInstruction.setText("Đang ghi hình... Nhấn nút lần nữa để Dừng.");
+                            tvSubInstruction.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_light));
+                            btnCapture.setAlpha(0.5f); // Làm mờ nút đi 1 xíu
+                        } else if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
+                            VideoRecordEvent.Finalize finalizeEvent = (VideoRecordEvent.Finalize) videoRecordEvent;
+
+                            // Reset UI
+                            btnCapture.setAlpha(1.0f);
+                            tvSubInstruction.setText("Đang xử lý dữ liệu khuôn mặt...");
+                            tvSubInstruction.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+
+                            if (!finalizeEvent.hasError()) {
+                                uploadLiveness(videoFile);
+                            } else {
+                                if (currentRecording != null) currentRecording.close();
+                                currentRecording = null;
+                                Toast.makeText(requireContext(), "Lỗi quay video: " + finalizeEvent.getError(), Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+        } catch (SecurityException e) {
+            Toast.makeText(requireContext(), "Lỗi quyền truy cập Microphone", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void uploadFrontId(Uri uri) {
         int pW = viewFinder.getWidth();
         int pH = viewFinder.getHeight();
@@ -263,42 +327,37 @@ public class CameraEkycFragment extends Fragment {
         if (imagePart == null) {
             showLoading(false);
             ivFreezeFrame.setVisibility(View.GONE);
-            Toast.makeText(requireContext(), "Lỗi xử lý ảnh. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Mặt Trước)");
         apiService.uploadFrontId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 if (!isAdded()) return;
                 showLoading(false);
 
-                if (response.isSuccessful() && response.body() != null) {
-                    try {
+                try {
+                    if (response.isSuccessful() && response.body() != null) {
                         EKycResultResponse result = response.body();
-                        Log.d(TAG, "Backend Response Code: " + result.getCode());
+                        EKycResultResponse.EKycData data = result.getData();
 
-                        if (result.getCode() == 200 || result.getCode() == 201 || result.getCode() == 0) {
-                            Log.d(TAG, "Mặt trước OK. Chuyển sang Bước 2.");
-
-                            // Lệnh này không mở trang mới, chỉ đổi chữ trên UI thành "Bước 2/3"
+                        // ĐÃ SỬA: Đọc chuẩn isSuccess từ Data của Backend trả về
+                        if (data != null && data.isSuccess()) {
                             currentStep = 2;
                             setupUIForStep(currentStep);
                             Toast.makeText(getContext(), "Xong mặt trước! Vui lòng lật mặt sau.", Toast.LENGTH_SHORT).show();
                         } else {
                             ivFreezeFrame.setVisibility(View.GONE);
-                            Toast.makeText(getContext(), "Lỗi từ Server: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                            String errorMsg = (data != null && data.getMessage() != null) ? data.getMessage() : result.getMessage();
+                            Toast.makeText(getContext(), "Lỗi: " + errorMsg, Toast.LENGTH_LONG).show();
                         }
-                    } catch (Exception e) {
+                    } else {
                         ivFreezeFrame.setVisibility(View.GONE);
-                        Log.e(TAG, "Lỗi Parse Data: ", e);
-                        Toast.makeText(getContext(), "Lỗi đọc dữ liệu từ Server.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Thẻ không hợp lệ (HTTP " + response.code() + ")", Toast.LENGTH_LONG).show();
                     }
-                } else {
+                } catch (Exception e) {
                     ivFreezeFrame.setVisibility(View.GONE);
-                    Log.e(TAG, "HTTP Error: " + response.code());
-                    Toast.makeText(getContext(), "Thẻ không hợp lệ hoặc lỗi Server (" + response.code() + ").", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Lỗi Parse Data: ", e);
                 }
             }
 
@@ -307,8 +366,7 @@ public class CameraEkycFragment extends Fragment {
                 if (!isAdded()) return;
                 showLoading(false);
                 ivFreezeFrame.setVisibility(View.GONE);
-                Log.e(TAG, "onFailure API - Mặt trước: ", t);
-                Toast.makeText(getContext(), "Lỗi hệ thống: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -330,7 +388,6 @@ public class CameraEkycFragment extends Fragment {
             return;
         }
 
-        Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Mặt Sau)");
         apiService.uploadBackId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
@@ -340,14 +397,17 @@ public class CameraEkycFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null) {
                     try {
                         EKycResultResponse result = response.body();
-                        if (result.getCode() == 200 || result.getCode() == 201 || result.getCode() == 0) {
-                            Log.d(TAG, "Mặt sau OK. Chuyển sang Bước 3.");
+                        EKycResultResponse.EKycData data = result.getData();
+
+                        if (data != null && data.isSuccess()) {
                             currentStep = 3;
                             setupUIForStep(currentStep);
+                            startCameraForCurrentStep(); // Chuyển sang Camera trước
                             Toast.makeText(getContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
                         } else {
                             ivFreezeFrame.setVisibility(View.GONE);
-                            Toast.makeText(getContext(), "Lỗi: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                            String errorMsg = (data != null && data.getMessage() != null) ? data.getMessage() : result.getMessage();
+                            Toast.makeText(getContext(), "Lỗi: " + errorMsg, Toast.LENGTH_LONG).show();
                         }
                     } catch (Exception e) {
                         ivFreezeFrame.setVisibility(View.GONE);
@@ -364,17 +424,18 @@ public class CameraEkycFragment extends Fragment {
                 if (!isAdded()) return;
                 showLoading(false);
                 ivFreezeFrame.setVisibility(View.GONE);
-                Log.e(TAG, "onFailure API - Mặt sau: ", t);
                 Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void uploadLiveness(Uri videoUri) {
+    private void uploadLiveness(File videoFile) {
         showLoading(true);
 
         MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
-        MultipartBody.Part videoPart = getVideoMultipart(videoUri);
+
+        RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), videoFile);
+        MultipartBody.Part videoPart = MultipartBody.Part.createFormData("video", videoFile.getName(), reqFile);
 
         if (cmndPart == null || videoPart == null) {
             showLoading(false);
@@ -382,7 +443,6 @@ public class CameraEkycFragment extends Fragment {
             return;
         }
 
-        Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Liveness Video)");
         apiService.verifyLiveness(getAuthToken(), kycSessionId, videoPart, cmndPart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
@@ -392,11 +452,14 @@ public class CameraEkycFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null) {
                     try {
                         EKycResultResponse result = response.body();
-                        if (result.getCode() == 200 || result.getCode() == 201 || result.getCode() == 0) {
-                            Toast.makeText(getContext(), "eKYC THÀNH CÔNG!", Toast.LENGTH_LONG).show();
+                        EKycResultResponse.EKycData data = result.getData();
+
+                        if (data != null && data.isSuccess()) {
+                            Toast.makeText(getContext(), "eKYC THÀNH CÔNG TỐT ĐẸP!", Toast.LENGTH_LONG).show();
                             if (getActivity() != null) getActivity().finish();
                         } else {
-                            Toast.makeText(getContext(), "Lỗi: " + result.getMessage(), Toast.LENGTH_LONG).show();
+                            String errorMsg = (data != null && data.getMessage() != null) ? data.getMessage() : result.getMessage();
+                            Toast.makeText(getContext(), "Lỗi Khuôn mặt: " + errorMsg, Toast.LENGTH_LONG).show();
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Lỗi Parse Data: ", e);
@@ -410,35 +473,9 @@ public class CameraEkycFragment extends Fragment {
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
                 if (!isAdded()) return;
                 showLoading(false);
-                Log.e(TAG, "onFailure API - Liveness: ", t);
                 Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private void startVideoRecording() {
-        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-        intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 5);
-        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
-        videoCaptureLauncher.launch(intent);
-    }
-
-    private MultipartBody.Part getVideoMultipart(Uri videoUri) {
-        try {
-            InputStream is = requireContext().getContentResolver().openInputStream(videoUri);
-            File tempFile = new File(requireContext().getCacheDir(), "liveness_video.mp4");
-            FileOutputStream fos = new FileOutputStream(tempFile);
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = is.read(buffer)) > 0) fos.write(buffer, 0, len);
-            fos.close();
-            is.close();
-            RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), tempFile);
-            return MultipartBody.Part.createFormData("video", tempFile.getName(), reqFile);
-        } catch (Exception e) {
-            Log.e(TAG, "Lỗi sao chép video", e);
-            return null;
-        }
     }
 
     private String getAuthToken() {
@@ -465,6 +502,9 @@ public class CameraEkycFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (currentRecording != null) {
+            currentRecording.stop();
+        }
         cameraExecutor.shutdown();
     }
 }
