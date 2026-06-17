@@ -84,6 +84,8 @@ public class CameraEkycFragment extends Fragment {
 
     private static final String TAG = "CameraEkycFragment";
     private static final long LIVENESS_RECORDING_MS = 5000L;
+    private static final String EKYC_TEMP_PREFS = "EkycTempPrefs";
+    private static final String KEY_FRONT_IMAGE_PATH_PREFIX = "front_image_path_";
 
     private PreviewView viewFinder;
     private ImageView ivFreezeFrame;
@@ -188,6 +190,7 @@ public class CameraEkycFragment extends Fragment {
         btnBack = view.findViewById(R.id.btnBack);
 
         apiService = ApiClient.getApiService();
+        restoreFrontImageFile();
 
         getParentFragmentManager().setFragmentResultListener(
                 ReviewEkycDataFragment.REQUEST_REVIEW_CONFIRMED,
@@ -217,7 +220,7 @@ public class CameraEkycFragment extends Fragment {
 
     public void onRetakeRequested() {
         currentStep = 1;
-        frontCroppedFile = null;
+        clearFrontImageTempFile();
         isFaceTaskRunning = false;
         isRecordingCanceled = false;
         isFinalizingRecording = false;
@@ -387,11 +390,14 @@ public class CameraEkycFragment extends Fragment {
                 showLoading(false);
 
                 if (isSuccessResponse(response)) {
+                    persistFrontImageFile(frontCroppedFile);
                     currentStep = 2;
                     setupUIForStep(currentStep);
                     showToast("Xong mặt trước! Vui lòng lật mặt sau.", Toast.LENGTH_SHORT);
                 } else {
                     ivFreezeFrame.setVisibility(View.GONE);
+                    deleteQuietly(frontCroppedFile);
+                    frontCroppedFile = null;
                     showToast(getErrorMessage(response, "Thẻ không hợp lệ"), Toast.LENGTH_LONG);
                 }
             }
@@ -476,7 +482,8 @@ public class CameraEkycFragment extends Fragment {
     }
 
     private void openReviewFragment(String idNumber, String fullName, String dob) {
-        String frontImagePath = frontCroppedFile != null ? frontCroppedFile.getAbsolutePath() : null;
+        File frontImageFile = resolveFrontImageFile();
+        String frontImagePath = frontImageFile != null ? frontImageFile.getAbsolutePath() : null;
         ReviewEkycDataFragment fragment = ReviewEkycDataFragment.newInstance(frontImagePath, idNumber, fullName, dob);
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, fragment)
@@ -665,7 +672,21 @@ public class CameraEkycFragment extends Fragment {
         }
         Log.d(TAG, "Liveness cache video: " + videoFile.getAbsolutePath() + " (" + (videoFile.length() / 1024) + " KB)");
 
-        MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
+        File cmndFile = resolveFrontImageFile();
+        if (cmndFile == null || !cmndFile.exists()) {
+            isLivenessUploading = false;
+            showLoading(false);
+            faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
+            setLivenessInstruction("Thiếu ảnh mặt trước CCCD");
+            showToast("Thiếu ảnh mặt trước CCCD để gửi kèm video. Vui lòng chụp lại từ bước 1.", Toast.LENGTH_LONG);
+            currentStep = 1;
+            setupUIForStep(currentStep);
+            startCameraForCurrentStep();
+            return;
+        }
+
+        Log.d(TAG, "Liveness cmnd image path: " + cmndFile.getAbsolutePath() + " (" + (cmndFile.length() / 1024) + " KB)");
+        MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", cmndFile);
         RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), videoFile);
         MultipartBody.Part videoPart = MultipartBody.Part.createFormData("video", videoFile.getName(), reqFile);
 
@@ -688,6 +709,7 @@ public class CameraEkycFragment extends Fragment {
 
                 if (isSuccessfulJsonResponse(response)) {
                     Log.d(TAG, "Liveness response message: " + getJsonResponseMessage(response.body(), "eKYC thành công"));
+                    clearFrontImageTempFile();
                     showToast("eKYC thành công!", Toast.LENGTH_LONG);
                     if (getActivity() instanceof EkycActivity) {
                         ((EkycActivity) getActivity()).finishWithSuccess();
@@ -903,6 +925,73 @@ public class CameraEkycFragment extends Fragment {
             Log.e(TAG, "Cannot copy liveness debug video", e);
             return null;
         }
+    }
+
+    private void persistFrontImageFile(File file) {
+        Context context = getContext();
+        if (context == null || file == null || !file.exists()) {
+            return;
+        }
+
+        frontCroppedFile = file;
+        context.getSharedPreferences(EKYC_TEMP_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(getFrontImagePathKey(), file.getAbsolutePath())
+                .apply();
+        Log.d(TAG, "Persisted front image for liveness: " + file.getAbsolutePath() + " (" + (file.length() / 1024) + " KB)");
+    }
+
+    private void restoreFrontImageFile() {
+        File file = resolveFrontImageFile();
+        if (file != null) {
+            frontCroppedFile = file;
+            Log.d(TAG, "Restored front image for liveness: " + file.getAbsolutePath() + " (" + (file.length() / 1024) + " KB)");
+        }
+    }
+
+    private File resolveFrontImageFile() {
+        if (frontCroppedFile != null && frontCroppedFile.exists()) {
+            return frontCroppedFile;
+        }
+
+        Context context = getContext();
+        if (context == null) {
+            return null;
+        }
+
+        String path = context.getSharedPreferences(EKYC_TEMP_PREFS, Context.MODE_PRIVATE)
+                .getString(getFrontImagePathKey(), null);
+        if (path == null || path.trim().isEmpty()) {
+            return null;
+        }
+
+        File file = new File(path);
+        if (!file.exists()) {
+            Log.e(TAG, "Persisted front image path is missing: " + path);
+            return null;
+        }
+
+        frontCroppedFile = file;
+        return file;
+    }
+
+    private void clearFrontImageTempFile() {
+        Context context = getContext();
+        File file = resolveFrontImageFile();
+        deleteQuietly(file);
+        frontCroppedFile = null;
+
+        if (context != null) {
+            context.getSharedPreferences(EKYC_TEMP_PREFS, Context.MODE_PRIVATE)
+                    .edit()
+                    .remove(getFrontImagePathKey())
+                    .apply();
+        }
+        Log.d(TAG, "Cleared temporary front image for liveness");
+    }
+
+    private String getFrontImagePathKey() {
+        return KEY_FRONT_IMAGE_PATH_PREFIX + (kycSessionId != null ? kycSessionId : "unknown");
     }
 
     private void copyFile(File sourceFile, File targetFile) throws IOException {
