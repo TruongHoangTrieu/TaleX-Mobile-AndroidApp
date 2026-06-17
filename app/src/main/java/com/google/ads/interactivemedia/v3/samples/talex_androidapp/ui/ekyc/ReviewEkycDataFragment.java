@@ -19,6 +19,7 @@ import java.io.File;
 public class ReviewEkycDataFragment extends Fragment {
 
     public static final String REQUEST_REVIEW_CONFIRMED = "review_ekyc_confirmed";
+    public static final String REQUEST_RETAKE_REQUESTED = "review_ekyc_retake";
 
     private static final String ARG_FRONT_IMAGE_PATH = "FRONT_IMAGE_PATH";
     private static final String ARG_ID_NUMBER = "ID_NUMBER";
@@ -68,14 +69,8 @@ public class ReviewEkycDataFragment extends Fragment {
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
         btnRetake.setOnClickListener(v -> {
+            getParentFragmentManager().setFragmentResult(REQUEST_RETAKE_REQUESTED, new Bundle());
             getParentFragmentManager().popBackStack();
-            getParentFragmentManager().executePendingTransactions();
-            for (Fragment fragment : getParentFragmentManager().getFragments()) {
-                if (fragment instanceof CameraEkycFragment) {
-                    ((CameraEkycFragment) fragment).onRetakeRequested();
-                    break;
-                }
-            }
         });
         btnConfirm.setOnClickListener(v -> {
             getParentFragmentManager().setFragmentResult(REQUEST_REVIEW_CONFIRMED, new Bundle());

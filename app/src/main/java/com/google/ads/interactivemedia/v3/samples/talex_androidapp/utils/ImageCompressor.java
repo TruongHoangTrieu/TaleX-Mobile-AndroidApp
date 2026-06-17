@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.net.Uri;
-import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
@@ -86,21 +85,12 @@ public class ImageCompressor {
             outStream.flush();
             outStream.close();
 
-            // 6. TẠO FILE DEBUG ĐỂ BẠN TỰ KIỂM TRA MẮT THƯỜNG
-            File debugDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-            File debugFile = new File(debugDir, "DEBUG_CROPPED_" + partName + "_" + System.currentTimeMillis() + ".jpg");
-            FileOutputStream debugOut = new FileOutputStream(debugFile);
-            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, debugOut);
-            debugOut.flush();
-            debugOut.close();
-
             // Log chi tiết dữ liệu
             long fileSizeKB = tempFile.length() / 1024;
             Log.d(TAG, "========== CROPPED PAYLOAD ==========");
             Log.d(TAG, "[Field Name]: " + partName);
             Log.d(TAG, "[Cropped Resolution]: " + croppedBitmap.getWidth() + "x" + croppedBitmap.getHeight());
             Log.d(TAG, "[File Size]: " + fileSizeKB + " KB");
-            Log.d(TAG, "[Debug Path]: " + debugFile.getAbsolutePath());
             Log.d(TAG, "=====================================");
 
             croppedBitmap.recycle();
