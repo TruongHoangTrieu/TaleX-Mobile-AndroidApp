@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -54,6 +55,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -61,6 +63,8 @@ import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
@@ -111,6 +115,7 @@ public class CameraEkycFragment extends Fragment {
     private Runnable autoStopRunnable;
 
     private String kycSessionId;
+    private String lastDebugVideoPath;
     private ApiService apiService;
     private int currentStep = 1;
     private File frontCroppedFile;
@@ -653,6 +658,13 @@ public class CameraEkycFragment extends Fragment {
         showLoading(true);
         setLivenessInstruction("Đang xác thực khuôn mặt...");
 
+        File debugVideoFile = copyLivenessVideoForDebug(videoFile);
+        if (debugVideoFile != null) {
+            lastDebugVideoPath = debugVideoFile.getAbsolutePath();
+            Log.d(TAG, "Liveness debug video: " + lastDebugVideoPath);
+        }
+        Log.d(TAG, "Liveness cache video: " + videoFile.getAbsolutePath() + " (" + (videoFile.length() / 1024) + " KB)");
+
         MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
         RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), videoFile);
         MultipartBody.Part videoPart = MultipartBody.Part.createFormData("video", videoFile.getName(), reqFile);
@@ -664,27 +676,33 @@ public class CameraEkycFragment extends Fragment {
             return;
         }
 
-        apiService.verifyLiveness(getAuthToken(), kycSessionId, videoPart, cmndPart).enqueue(new Callback<EKycResultResponse>() {
+        apiService.verifyLiveness(getAuthToken(), kycSessionId, videoPart, cmndPart).enqueue(new Callback<JsonElement>() {
             @Override
-            public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
+            public void onResponse(@NonNull Call<JsonElement> call, @NonNull Response<JsonElement> response) {
                 if (!hasLiveUi()) return;
                 showLoading(false);
                 isLivenessUploading = false;
+                Log.d(TAG, "Liveness request URL: " + response.raw().request().url());
+                Log.d(TAG, "Liveness HTTP code: " + response.code());
+                Log.d(TAG, "Liveness response body: " + (response.body() != null ? response.body().toString() : "null"));
 
-                if (isSuccessResponse(response)) {
+                if (isSuccessfulJsonResponse(response)) {
+                    Log.d(TAG, "Liveness response message: " + getJsonResponseMessage(response.body(), "eKYC thành công"));
                     showToast("eKYC thành công!", Toast.LENGTH_LONG);
                     if (getActivity() instanceof EkycActivity) {
                         ((EkycActivity) getActivity()).finishWithSuccess();
                     }
                 } else {
+                    String errorMessage = getJsonErrorMessage(response, "Xác thực khuôn mặt thất bại");
+                    Log.e(TAG, "Liveness failed: " + errorMessage);
                     faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
-                    setLivenessInstruction("Xác thực thất bại. Thử lại");
-                    showToast(getErrorMessage(response, "Xác thực khuôn mặt thất bại"), Toast.LENGTH_LONG);
+                    setLivenessInstruction("Lỗi: " + shortMessage(errorMessage));
+                    showToast(errorMessage, Toast.LENGTH_LONG);
                 }
             }
 
             @Override
-            public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<JsonElement> call, @NonNull Throwable t) {
                 if (!hasLiveUi()) return;
                 showLoading(false);
                 isLivenessUploading = false;
@@ -703,20 +721,200 @@ public class CameraEkycFragment extends Fragment {
         return data != null && data.isSuccess();
     }
 
+    private boolean isSuccessfulJsonResponse(Response<JsonElement> response) {
+        if (!response.isSuccessful() || response.body() == null || !response.body().isJsonObject()) {
+            return false;
+        }
+
+        JsonObject object = response.body().getAsJsonObject();
+        JsonElement code = object.get("code");
+        if (code != null && code.isJsonPrimitive() && code.getAsJsonPrimitive().isNumber()) {
+            int codeValue = code.getAsInt();
+            return codeValue == 0 || codeValue == 200;
+        }
+
+        JsonElement data = object.get("data");
+        if (data != null && data.isJsonObject()) {
+            JsonElement isSuccess = data.getAsJsonObject().get("isSuccess");
+            return isSuccess != null && isSuccess.isJsonPrimitive() && isSuccess.getAsBoolean();
+        }
+
+        return false;
+    }
+
+    private String getJsonErrorMessage(Response<JsonElement> response, String fallback) {
+        String httpPrefix = response.code() > 0 ? "HTTP " + response.code() + ": " : "";
+        if (response.body() != null) {
+            return httpPrefix + getJsonResponseMessage(response.body(), fallback);
+        }
+
+        String errorBody = readErrorBody(response);
+        String serverMessage = extractServerMessage(errorBody);
+        if (serverMessage != null) {
+            return httpPrefix + serverMessage;
+        }
+        if (errorBody != null && !errorBody.trim().isEmpty()) {
+            return httpPrefix + errorBody;
+        }
+        return httpPrefix + fallback;
+    }
+
+    private String getJsonResponseMessage(JsonElement body, String fallback) {
+        if (body == null || !body.isJsonObject()) {
+            return fallback;
+        }
+
+        JsonObject object = body.getAsJsonObject();
+        JsonElement message = object.get("message");
+        if (message != null && message.isJsonPrimitive()) {
+            return message.getAsString();
+        }
+
+        String dataMessage = readNestedMessage(object, "data");
+        if (dataMessage != null) {
+            return dataMessage;
+        }
+
+        JsonElement data = object.get("data");
+        if (data != null && data.isJsonPrimitive()) {
+            return data.getAsString();
+        }
+
+        return fallback;
+    }
+
     private String getErrorMessage(Response<EKycResultResponse> response, String fallback) {
+        String httpPrefix = response.code() > 0 ? "HTTP " + response.code() + ": " : "";
+
         if (response.body() == null) {
-            return fallback + " (HTTP " + response.code() + ")";
+            String errorBody = readErrorBody(response);
+            String serverMessage = extractServerMessage(errorBody);
+            if (serverMessage != null) {
+                return httpPrefix + serverMessage;
+            }
+            if (errorBody != null && !errorBody.trim().isEmpty()) {
+                return httpPrefix + errorBody;
+            }
+            return httpPrefix + fallback;
         }
 
         EKycResultResponse result = response.body();
         EKycResultResponse.EKycData data = result.getData();
-        if (data != null && data.getMessage() != null) {
-            return data.getMessage();
-        }
         if (result.getMessage() != null) {
-            return result.getMessage();
+            return httpPrefix + result.getMessage();
         }
-        return fallback;
+        if (data != null && data.getMessage() != null) {
+            return httpPrefix + data.getMessage();
+        }
+        return httpPrefix + fallback;
+    }
+
+    private String readErrorBody(Response<?> response) {
+        try {
+            if (response.errorBody() == null) {
+                return null;
+            }
+            String rawError = response.errorBody().string();
+            Log.e(TAG, "Liveness error body: " + rawError);
+            return rawError;
+        } catch (IOException e) {
+            Log.e(TAG, "Cannot read liveness error body", e);
+            return null;
+        }
+    }
+
+    private String extractServerMessage(String rawJson) {
+        if (rawJson == null || rawJson.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            JsonElement element = JsonParser.parseString(rawJson);
+            if (!element.isJsonObject()) {
+                return null;
+            }
+
+            JsonObject object = element.getAsJsonObject();
+            JsonElement message = object.get("message");
+            if (message != null && message.isJsonPrimitive()) {
+                return message.getAsString();
+            }
+
+            String dataMessage = readNestedMessage(object, "data");
+            if (dataMessage != null) {
+                return dataMessage;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Cannot parse liveness error body", e);
+        }
+        return null;
+    }
+
+    private String readNestedMessage(JsonObject object, String childKey) {
+        JsonElement child = object.get(childKey);
+        if (child == null || !child.isJsonObject()) {
+            return null;
+        }
+
+        JsonElement message = child.getAsJsonObject().get("message");
+        if (message != null && message.isJsonPrimitive()) {
+            String value = message.getAsString();
+            if (value != null && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String shortMessage(String message) {
+        if (message == null) {
+            return "Xác thực thất bại";
+        }
+        return message.length() > 42 ? message.substring(0, 42) + "..." : message;
+    }
+
+    private File copyLivenessVideoForDebug(File sourceFile) {
+        Context context = getContext();
+        if (context == null || sourceFile == null || !sourceFile.exists()) {
+            return null;
+        }
+
+        File moviesDir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES);
+        if (moviesDir == null) {
+            return null;
+        }
+
+        File debugDir = new File(moviesDir, "ekyc_debug");
+        if (!debugDir.exists() && !debugDir.mkdirs()) {
+            Log.e(TAG, "Cannot create liveness debug dir: " + debugDir.getAbsolutePath());
+            return null;
+        }
+
+        File latestFile = new File(debugDir, "liveness_latest.mp4");
+        File timestampFile = new File(debugDir, "liveness_" + System.currentTimeMillis() + ".mp4");
+
+        try {
+            copyFile(sourceFile, latestFile);
+            copyFile(sourceFile, timestampFile);
+            Log.d(TAG, "Liveness latest video path: " + latestFile.getAbsolutePath());
+            Log.d(TAG, "Liveness timestamp video path: " + timestampFile.getAbsolutePath());
+            return latestFile;
+        } catch (IOException e) {
+            Log.e(TAG, "Cannot copy liveness debug video", e);
+            return null;
+        }
+    }
+
+    private void copyFile(File sourceFile, File targetFile) throws IOException {
+        byte[] buffer = new byte[8192];
+        try (FileInputStream inputStream = new FileInputStream(sourceFile);
+             FileOutputStream outputStream = new FileOutputStream(targetFile)) {
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            outputStream.flush();
+        }
     }
 
     private String readIdentityValue(JsonElement element, String... keys) {

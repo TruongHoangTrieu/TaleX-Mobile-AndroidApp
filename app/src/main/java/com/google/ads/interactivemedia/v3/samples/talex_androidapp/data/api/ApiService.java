@@ -107,7 +107,7 @@ public interface ApiService {
 
     @Multipart
     @POST("api/v1/kyc-sessions/{kycSessionId}/liveness")
-    Call<EKycResultResponse> verifyLiveness(
+    Call<JsonElement> verifyLiveness(
             @Header("Authorization") String token,
             @Path("kycSessionId") String kycSessionId,
             @Part MultipartBody.Part video, // File video khuôn mặt
