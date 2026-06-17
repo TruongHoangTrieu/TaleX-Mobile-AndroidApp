@@ -2,16 +2,22 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
+    android:background="#121212"
+    tools:ignore="HardcodedText"> <androidx.camera.view.PreviewView
+    android:id="@+id/viewFinder"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/viewFinder"
+    <ImageView
+        android:id="@+id/ivFreezeFrame"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <View
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        android:importantForAccessibility="no" /> <View
         android:id="@+id/dimTop"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -69,6 +75,7 @@
         android:layout_margin="16dp"
         android:padding="12dp"
         android:src="@android:drawable/ic_menu_revert"
+        android:contentDescription="Quay lại"
         app:tint="#D4AF37"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -114,6 +121,7 @@
             android:background="@drawable/bg_capture_outer"
             android:clickable="true"
             android:focusable="true"
+            android:contentDescription="Nút chụp ảnh"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/tvSubInstruction">

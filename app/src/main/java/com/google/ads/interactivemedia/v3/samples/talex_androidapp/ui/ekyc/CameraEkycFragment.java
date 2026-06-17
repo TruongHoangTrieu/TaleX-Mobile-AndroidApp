@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -62,9 +63,10 @@ public class CameraEkycFragment extends Fragment {
 
     // UI
     private PreviewView viewFinder;
+    private ImageView ivFreezeFrame; // Biến mới: Chứa ảnh đóng băng
     private TextView tvStepInstruction, tvSubInstruction;
-    private View btnCapture; // Đã đổi thành View (hỗ trợ FrameLayout mới)
-    private View frameIdCard; // Thêm biến ánh xạ Khung ngắm
+    private View btnCapture;
+    private View frameIdCard;
     private ProgressBar progressBar;
     private ImageView btnBack;
 
@@ -129,10 +131,11 @@ public class CameraEkycFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewFinder = view.findViewById(R.id.viewFinder);
+        ivFreezeFrame = view.findViewById(R.id.ivFreezeFrame); // Ánh xạ màn đóng băng
         tvStepInstruction = view.findViewById(R.id.tvStepInstruction);
         tvSubInstruction = view.findViewById(R.id.tvSubInstruction);
         btnCapture = view.findViewById(R.id.btnCapture);
-        frameIdCard = view.findViewById(R.id.frameIdCard); // Ánh xạ khung ngắm
+        frameIdCard = view.findViewById(R.id.frameIdCard);
         progressBar = view.findViewById(R.id.progressBar);
         btnBack = view.findViewById(R.id.btnBack);
 
@@ -158,15 +161,17 @@ public class CameraEkycFragment extends Fragment {
     }
 
     private void setupUIForStep(int step) {
+        // Luôn giấu màn đóng băng khi bước sang một trạng thái mới để camera quay tiếp
+        ivFreezeFrame.setVisibility(View.GONE);
+
         if (step == 1) {
             tvStepInstruction.setText("Bước 1/3: Mặt trước CCCD");
             tvSubInstruction.setText("Vui lòng căn chỉnh giấy tờ vào trong khung hình.");
 
-            // Thiết lập khung hình chữ nhật cho CCCD
             frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_id_frame);
             ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
             params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            params.height = (int) (220 * getResources().getDisplayMetrics().density); // Cao 220dp
+            params.height = (int) (220 * getResources().getDisplayMetrics().density);
             frameIdCard.setLayoutParams(params);
 
         } else if (step == 2) {
@@ -177,10 +182,9 @@ public class CameraEkycFragment extends Fragment {
             tvStepInstruction.setText("Bước 3/3: Xác thực khuôn mặt");
             tvSubInstruction.setText("Nhấn nút để quay video khuôn mặt (3-5 giây).");
 
-            // Biến khung ngắm thành hình Tròn cho khuôn mặt
             frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_face_frame);
             ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
-            int size = (int) (300 * getResources().getDisplayMetrics().density); // Tròn 300dp x 300dp
+            int size = (int) (300 * getResources().getDisplayMetrics().density);
             params.width = size;
             params.height = size;
             frameIdCard.setLayoutParams(params);
@@ -214,6 +218,13 @@ public class CameraEkycFragment extends Fragment {
     private void takePhoto() {
         if (imageCapture == null) return;
 
+        // ĐÓNG BĂNG HÌNH ẢNH MÀN HÌNH CAMERA NGAY LẬP TỨC
+        Bitmap frozenBitmap = viewFinder.getBitmap();
+        if (frozenBitmap != null) {
+            ivFreezeFrame.setImageBitmap(frozenBitmap);
+            ivFreezeFrame.setVisibility(View.VISIBLE);
+        }
+
         File photoFile = new File(requireContext().getCacheDir(), "capture_" + System.currentTimeMillis() + ".jpg");
         ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
@@ -234,6 +245,7 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onError(@NonNull ImageCaptureException exception) {
                 showLoading(false);
+                ivFreezeFrame.setVisibility(View.GONE); // Gỡ đóng băng để user chụp lại
                 Toast.makeText(requireContext(), "Lỗi chụp ảnh: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -250,6 +262,7 @@ public class CameraEkycFragment extends Fragment {
         MultipartBody.Part imagePart = ImageCompressor.getMultipartFromUri(requireContext(), uri, "frontImage");
         if (imagePart == null) {
             showLoading(false);
+            ivFreezeFrame.setVisibility(View.GONE);
             Toast.makeText(requireContext(), "Lỗi xử lý ảnh", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -262,12 +275,14 @@ public class CameraEkycFragment extends Fragment {
                     int code = response.body().getCode();
                     if (code == 200 || code == 201 || code == 0) {
                         currentStep = 2;
-                        setupUIForStep(currentStep);
+                        setupUIForStep(currentStep); // Gọi hàm này sẽ tự động giấu ivFreezeFrame đi
                         Toast.makeText(requireContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
                     } else {
+                        ivFreezeFrame.setVisibility(View.GONE); // Thất bại -> gỡ đóng băng
                         Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 } else {
+                    ivFreezeFrame.setVisibility(View.GONE); // Thất bại -> gỡ đóng băng
                     Toast.makeText(requireContext(), "CCCD không hợp lệ hoặc đã tồn tại.", Toast.LENGTH_LONG).show();
                 }
             }
@@ -275,6 +290,7 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
                 showLoading(false);
+                ivFreezeFrame.setVisibility(View.GONE); // Lỗi mạng -> gỡ đóng băng để thử lại
                 Toast.makeText(requireContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -294,9 +310,11 @@ public class CameraEkycFragment extends Fragment {
                         setupUIForStep(currentStep);
                         Toast.makeText(requireContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
                     } else {
+                        ivFreezeFrame.setVisibility(View.GONE);
                         Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 } else {
+                    ivFreezeFrame.setVisibility(View.GONE);
                     Toast.makeText(requireContext(), "Ảnh mặt sau không hợp lệ.", Toast.LENGTH_LONG).show();
                 }
             }
@@ -304,6 +322,7 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
                 showLoading(false);
+                ivFreezeFrame.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });

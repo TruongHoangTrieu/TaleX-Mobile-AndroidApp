@@ -15,9 +15,12 @@ import okhttp3.RequestBody;
 
 public class ImageCompressor {
 
-    private static final int MAX_WIDTH = 1920;
-    private static final int MAX_HEIGHT = 1080;
-    private static final int COMPRESS_QUALITY = 80;
+    // Nâng cấp độ phân giải lên chuẩn 2K để FPT.AI đọc rõ nét quốc huy và chữ nhỏ
+    private static final int MAX_WIDTH = 2560;
+    private static final int MAX_HEIGHT = 1440;
+
+    // Nâng chất lượng ảnh từ 80% lên 95% (Dung lượng sẽ dao động từ 1.5MB - 2.5MB, thỏa mãn chuẩn < 5MB)
+    private static final int COMPRESS_QUALITY = 95;
 
     /**
      * Nén ảnh từ Uri và đóng gói thành MultipartBody.Part cho Retrofit.
@@ -35,7 +38,7 @@ public class ImageCompressor {
 
             if (originalBitmap == null) return null;
 
-            // 2. Tính toán tỷ lệ thu nhỏ để bảo vệ RAM
+            // 2. Tính toán tỷ lệ thu nhỏ
             int width = originalBitmap.getWidth();
             int height = originalBitmap.getHeight();
             float ratioBitmap = (float) width / (float) height;
@@ -55,14 +58,14 @@ public class ImageCompressor {
                 }
             }
 
-            // 3. Resize ảnh xuống mức an toàn
+            // 3. Resize ảnh xuống mức an toàn (Giữ lại tối đa độ nét của 2K)
             Bitmap resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, finalWidth, finalHeight, true);
 
-            // 4. Tạo file tạm thời trong thư mục Cache của App (Tự động xóa khi đầy, không cần xin quyền Storage)
+            // 4. Tạo file tạm thời trong thư mục Cache của App
             File tempFile = new File(context.getCacheDir(), "ekyc_" + System.currentTimeMillis() + ".jpg");
             FileOutputStream outStream = new FileOutputStream(tempFile);
 
-            // Nén ảnh ra định dạng JPEG với chất lượng 80%
+            // Nén ảnh ra định dạng JPEG với chất lượng 95%
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, outStream);
             outStream.flush();
             outStream.close();
