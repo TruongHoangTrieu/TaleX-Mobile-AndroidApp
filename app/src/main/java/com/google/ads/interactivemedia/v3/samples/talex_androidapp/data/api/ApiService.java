@@ -16,7 +16,7 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Fo
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResetPasswordRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse;
-
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.UpdateProfileRequest;
 // --- CÁC MODEL MỚI CHO LUỒNG EKYC SẼ ĐƯỢC TẠO Ở BƯỚC TIẾP THEO ---
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.TermsResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterRequest;
@@ -29,6 +29,7 @@ import retrofit2.http.Header;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
 import retrofit2.http.GET;
+import retrofit2.http.PUT;
 import retrofit2.http.Multipart;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
@@ -66,6 +67,11 @@ public interface ApiService {
 
     @GET("api/auth/me")
     Call<ProfileResponse> getCurrentProfile(@Header("Authorization") String token);
+    @PUT("api/auth/me")
+    Call<ProfileResponse> updateCurrentUserProfile(
+            @Header("Authorization") String token,
+            @Body UpdateProfileRequest request // Gửi Object chứa chuỗi String
+    );
 
     // =========================================================================
     // LUỒNG ĐIỀU KHOẢN (TERMS) & ĐĂNG KÝ CREATOR
