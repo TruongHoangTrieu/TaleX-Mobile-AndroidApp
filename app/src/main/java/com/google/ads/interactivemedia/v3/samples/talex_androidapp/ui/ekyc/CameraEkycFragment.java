@@ -263,7 +263,7 @@ public class CameraEkycFragment extends Fragment {
         if (imagePart == null) {
             showLoading(false);
             ivFreezeFrame.setVisibility(View.GONE);
-            Toast.makeText(requireContext(), "Lỗi xử lý ảnh", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Lỗi xử lý ảnh. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -274,16 +274,29 @@ public class CameraEkycFragment extends Fragment {
                 if (!isAdded()) return;
                 showLoading(false);
 
-                // ĐÃ SỬA: Chỉ cần mã HTTP 20X là thành công tuyệt đối
-                if (response.isSuccessful()) {
-                    Log.d(TAG, "HTTP 200: Nhận diện mặt trước thành công!");
-                    currentStep = 2;
-                    setupUIForStep(currentStep);
-                    Toast.makeText(getContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
-                } else {
+                try {
+                    // Dùng khối Try-Catch để bọc lại toàn bộ logic xử lý dữ liệu trả về
+                    // Phòng ngừa việc Backend trả về Null hoặc cấu trúc JSON bị thay đổi
+                    if (response.isSuccessful() && response.body() != null) {
+                        Log.d(TAG, "HTTP 200: Nhận diện mặt trước thành công!");
+
+                        // Ở đây, lý tưởng nhất là ta mở giao diện "Kiểm tra thông tin" (Figma)
+                        // Tuy nhiên, theo luồng hiện tại, ta đi tiếp sang Bước 2.
+                        currentStep = 2;
+                        setupUIForStep(currentStep);
+                        Toast.makeText(getContext(), "Xong mặt trước! Tiếp tục chụp mặt sau.", Toast.LENGTH_SHORT).show();
+
+                    } else {
+                        // Backend vẫn trả về 200 nhưng nội dung Body báo lỗi nghiệp vụ
+                        ivFreezeFrame.setVisibility(View.GONE);
+                        Toast.makeText(getContext(), "Thẻ không hợp lệ. Vui lòng chụp lại.", Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "FPT.AI Từ chối - Lỗi nghiệp vụ");
+                    }
+                } catch (Exception e) {
+                    // Bắt toàn bộ lỗi treo App (Crash/ANR) nếu Parse JSON thất bại
                     ivFreezeFrame.setVisibility(View.GONE);
-                    Toast.makeText(getContext(), "CCCD không hợp lệ hoặc bị mờ. Vui lòng chụp lại.", Toast.LENGTH_LONG).show();
-                    Log.e(TAG, "FPT.AI Từ chối - HTTP Code: " + response.code());
+                    Toast.makeText(getContext(), "Lỗi đồng bộ dữ liệu. Vui lòng chụp lại.", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Lỗi khi đọc kết quả từ BE: ", e);
                 }
             }
 
@@ -292,11 +305,10 @@ public class CameraEkycFragment extends Fragment {
                 if (!isAdded()) return;
                 showLoading(false);
                 ivFreezeFrame.setVisibility(View.GONE);
-                Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Đứt kết nối mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
-
     private void uploadBackId(Uri uri) {
         int pW = viewFinder.getWidth();
         int pH = viewFinder.getHeight();
