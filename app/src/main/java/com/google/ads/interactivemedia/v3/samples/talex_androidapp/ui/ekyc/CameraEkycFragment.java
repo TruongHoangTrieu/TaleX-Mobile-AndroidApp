@@ -63,7 +63,7 @@ public class CameraEkycFragment extends Fragment {
 
     // UI
     private PreviewView viewFinder;
-    private ImageView ivFreezeFrame; // Biến mới: Chứa ảnh đóng băng
+    private ImageView ivFreezeFrame;
     private TextView tvStepInstruction, tvSubInstruction;
     private View btnCapture;
     private View frameIdCard;
@@ -80,7 +80,7 @@ public class CameraEkycFragment extends Fragment {
     private String kycSessionId;
     private ApiService apiService;
     private int currentStep = 1;
-    private Uri frontImageUri = null;
+    private File frontCroppedFile = null; // Lưu trữ file đã cắt chuẩn
 
     // Launchers
     private ActivityResultLauncher<Intent> videoCaptureLauncher;
@@ -101,7 +101,7 @@ public class CameraEkycFragment extends Fragment {
                     if (isGranted) {
                         startCamera();
                     } else {
-                        Toast.makeText(requireContext(), "Cần cấp quyền Máy ảnh để thực hiện eKYC", Toast.LENGTH_LONG).show();
+                        Toast.makeText(requireContext(), "Cần cấp quyền Máy ảnh", Toast.LENGTH_LONG).show();
                         getParentFragmentManager().popBackStack();
                     }
                 }
@@ -131,7 +131,7 @@ public class CameraEkycFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewFinder = view.findViewById(R.id.viewFinder);
-        ivFreezeFrame = view.findViewById(R.id.ivFreezeFrame); // Ánh xạ màn đóng băng
+        ivFreezeFrame = view.findViewById(R.id.ivFreezeFrame);
         tvStepInstruction = view.findViewById(R.id.tvStepInstruction);
         tvSubInstruction = view.findViewById(R.id.tvSubInstruction);
         btnCapture = view.findViewById(R.id.btnCapture);
@@ -161,7 +161,6 @@ public class CameraEkycFragment extends Fragment {
     }
 
     private void setupUIForStep(int step) {
-        // Luôn giấu màn đóng băng khi bước sang một trạng thái mới để camera quay tiếp
         ivFreezeFrame.setVisibility(View.GONE);
 
         if (step == 1) {
@@ -218,7 +217,6 @@ public class CameraEkycFragment extends Fragment {
     private void takePhoto() {
         if (imageCapture == null) return;
 
-        // ĐÓNG BĂNG HÌNH ẢNH MÀN HÌNH CAMERA NGAY LẬP TỨC
         Bitmap frozenBitmap = viewFinder.getBitmap();
         if (frozenBitmap != null) {
             ivFreezeFrame.setImageBitmap(frozenBitmap);
@@ -235,7 +233,6 @@ public class CameraEkycFragment extends Fragment {
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                 Uri savedUri = Uri.fromFile(photoFile);
                 if (currentStep == 1) {
-                    frontImageUri = savedUri;
                     uploadFrontId(savedUri);
                 } else if (currentStep == 2) {
                     uploadBackId(savedUri);
@@ -245,21 +242,23 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onError(@NonNull ImageCaptureException exception) {
                 showLoading(false);
-                ivFreezeFrame.setVisibility(View.GONE); // Gỡ đóng băng để user chụp lại
+                ivFreezeFrame.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), "Lỗi chụp ảnh: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void startVideoRecording() {
-        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-        intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 5);
-        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
-        videoCaptureLauncher.launch(intent);
-    }
-
     private void uploadFrontId(Uri uri) {
-        MultipartBody.Part imagePart = ImageCompressor.getMultipartFromUri(requireContext(), uri, "frontImage");
+        int pW = viewFinder.getWidth();
+        int pH = viewFinder.getHeight();
+        float fX = frameIdCard.getX();
+        float fY = frameIdCard.getY();
+        float fW = frameIdCard.getWidth();
+        float fH = frameIdCard.getHeight();
+
+        frontCroppedFile = ImageCompressor.processAndCropImage(requireContext(), uri, "frontImage", pW, pH, fX, fY, fW, fH);
+        MultipartBody.Part imagePart = ImageCompressor.buildMultipart("frontImage", frontCroppedFile);
+
         if (imagePart == null) {
             showLoading(false);
             ivFreezeFrame.setVisibility(View.GONE);
@@ -268,11 +267,7 @@ public class CameraEkycFragment extends Fragment {
         }
 
         Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Mặt Trước)");
-        Log.d(TAG, "Session ID: " + kycSessionId);
-        String token = getAuthToken();
-        Log.d(TAG, "Token Length: " + (token != null ? token.length() : "NULL"));
-
-        apiService.uploadFrontId(token, kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
+        apiService.uploadFrontId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 showLoading(false);
@@ -280,14 +275,14 @@ public class CameraEkycFragment extends Fragment {
                     int code = response.body().getCode();
                     if (code == 200 || code == 201 || code == 0) {
                         currentStep = 2;
-                        setupUIForStep(currentStep); // Gọi hàm này sẽ tự động giấu ivFreezeFrame đi
+                        setupUIForStep(currentStep);
                         Toast.makeText(requireContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
                     } else {
-                        ivFreezeFrame.setVisibility(View.GONE); // Thất bại -> gỡ đóng băng
+                        ivFreezeFrame.setVisibility(View.GONE);
                         Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 } else {
-                    ivFreezeFrame.setVisibility(View.GONE); // Thất bại -> gỡ đóng băng
+                    ivFreezeFrame.setVisibility(View.GONE);
                     Toast.makeText(requireContext(), "CCCD không hợp lệ hoặc đã tồn tại.", Toast.LENGTH_LONG).show();
                 }
             }
@@ -295,24 +290,30 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
                 showLoading(false);
-                ivFreezeFrame.setVisibility(View.GONE); // Lỗi mạng -> gỡ đóng băng để thử lại
+                ivFreezeFrame.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void uploadBackId(Uri uri) {
-        MultipartBody.Part imagePart = ImageCompressor.getMultipartFromUri(requireContext(), uri, "backImage");
+        int pW = viewFinder.getWidth();
+        int pH = viewFinder.getHeight();
+        float fX = frameIdCard.getX();
+        float fY = frameIdCard.getY();
+        float fW = frameIdCard.getWidth();
+        float fH = frameIdCard.getHeight();
+
+        File backCroppedFile = ImageCompressor.processAndCropImage(requireContext(), uri, "backImage", pW, pH, fX, fY, fW, fH);
+        MultipartBody.Part imagePart = ImageCompressor.buildMultipart("backImage", backCroppedFile);
+
         if (imagePart == null) {
             showLoading(false);
             ivFreezeFrame.setVisibility(View.GONE);
-            Toast.makeText(requireContext(), "Lỗi xử lý ảnh", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Mặt Sau)");
-        Log.d(TAG, "Session ID: " + kycSessionId);
-
         apiService.uploadBackId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
@@ -345,7 +346,8 @@ public class CameraEkycFragment extends Fragment {
     private void uploadLiveness(Uri videoUri) {
         showLoading(true);
 
-        MultipartBody.Part cmndPart = ImageCompressor.getMultipartFromUri(requireContext(), frontImageUri, "cmnd");
+        // Sử dụng lại chính file MẶT TRƯỚC ĐÃ CẮT chuẩn ở Bước 1
+        MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
         MultipartBody.Part videoPart = getVideoMultipart(videoUri);
 
         if (cmndPart == null || videoPart == null) {
@@ -355,8 +357,6 @@ public class CameraEkycFragment extends Fragment {
         }
 
         Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Liveness Video)");
-        Log.d(TAG, "Session ID: " + kycSessionId);
-
         apiService.verifyLiveness(getAuthToken(), kycSessionId, videoPart, cmndPart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
@@ -365,9 +365,7 @@ public class CameraEkycFragment extends Fragment {
                     int code = response.body().getCode();
                     if (code == 200 || code == 201 || code == 0) {
                         Toast.makeText(requireContext(), "eKYC THÀNH CÔNG!", Toast.LENGTH_LONG).show();
-                        if (getActivity() != null) {
-                            getActivity().finish();
-                        }
+                        if (getActivity() != null) getActivity().finish();
                     } else {
                         Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
                     }
@@ -384,6 +382,13 @@ public class CameraEkycFragment extends Fragment {
         });
     }
 
+    private void startVideoRecording() {
+        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 5);
+        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
+        videoCaptureLauncher.launch(intent);
+    }
+
     private MultipartBody.Part getVideoMultipart(Uri videoUri) {
         try {
             InputStream is = requireContext().getContentResolver().openInputStream(videoUri);
@@ -391,9 +396,7 @@ public class CameraEkycFragment extends Fragment {
             FileOutputStream fos = new FileOutputStream(tempFile);
             byte[] buffer = new byte[1024];
             int len;
-            while ((len = is.read(buffer)) > 0) {
-                fos.write(buffer, 0, len);
-            }
+            while ((len = is.read(buffer)) > 0) fos.write(buffer, 0, len);
             fos.close();
             is.close();
             RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), tempFile);
