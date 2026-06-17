@@ -6,9 +6,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,8 +37,8 @@ public class TermsFragment extends Fragment {
 
     private static final String TAG = "TermsFragment";
 
-    private TextView tvTitle, tvTermsContent;
-    private CheckBox cbCheckpoint1, cbCheckpoint2;
+    private TextView tvTermsContent;
+    private ScrollView scrollViewTerms;
     private MaterialButton btnAcceptAndContinue;
     private ProgressBar progressBar;
     private ImageView btnBack;
@@ -56,48 +56,28 @@ public class TermsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // 1. Ánh xạ View
-        tvTitle = view.findViewById(R.id.tvTitle);
         tvTermsContent = view.findViewById(R.id.tvTermsContent);
-        cbCheckpoint1 = view.findViewById(R.id.cbCheckpoint1);
-        cbCheckpoint2 = view.findViewById(R.id.cbCheckpoint2);
+        scrollViewTerms = view.findViewById(R.id.scrollViewTerms);
         btnAcceptAndContinue = view.findViewById(R.id.btnAcceptAndContinue);
         progressBar = view.findViewById(R.id.progressBar);
         btnBack = view.findViewById(R.id.btnBack);
 
-        // Khởi tạo ApiService
         apiService = ApiClient.getApiService();
+        btnAcceptAndContinue.setVisibility(View.GONE);
 
-        // 2. Lắng nghe sự kiện Checkbox
-        View.OnClickListener checkboxListener = v -> {
-            boolean isBothChecked = cbCheckpoint1.isChecked() && cbCheckpoint2.isChecked();
-            btnAcceptAndContinue.setEnabled(isBothChecked);
-        };
-        cbCheckpoint1.setOnClickListener(checkboxListener);
-        cbCheckpoint2.setOnClickListener(checkboxListener);
-
-        // 3. Lắng nghe sự kiện Nút bấm
+        scrollViewTerms.getViewTreeObserver().addOnScrollChangedListener(this::showAcceptButtonAtBottom);
         btnAcceptAndContinue.setOnClickListener(v -> submitCreatorRegistration());
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> {
-                if (getActivity() != null) {
-                    getActivity().finish();
-                }
-            });
+            btnBack.setOnClickListener(v -> requireActivity().finish());
         }
 
-        // 4. Bắt đầu gọi API lấy dữ liệu điều khoản
         fetchActiveTerms();
     }
 
-    /**
-     * Hàm lấy JWT Token thực tế từ bộ nhớ mã hóa
-     */
     private String getAuthToken() {
         try {
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
-
             SharedPreferences securePrefs = EncryptedSharedPreferences.create(
                     "TaleXSecurePref",
                     masterKeyAlias,
@@ -107,14 +87,12 @@ public class TermsFragment extends Fragment {
             );
 
             String token = securePrefs.getString("ACCESS_TOKEN", "");
-
             if (!token.isEmpty() && !token.startsWith("Bearer ")) {
                 token = "Bearer " + token;
             }
             return token;
-
         } catch (GeneralSecurityException | IOException e) {
-            Log.e(TAG, "Lỗi khi lấy token bảo mật", e);
+            Log.e(TAG, "Cannot read secure token", e);
             return "";
         }
     }
@@ -123,20 +101,23 @@ public class TermsFragment extends Fragment {
         showLoading(true);
         apiService.getActiveTerms(getAuthToken(), "CREATOR").enqueue(new Callback<TermsResponse>() {
             @Override
-            public void onResponse(Call<TermsResponse> call, Response<TermsResponse> response) {
+            public void onResponse(@NonNull Call<TermsResponse> call, @NonNull Response<TermsResponse> response) {
+                if (!isAdded()) return;
                 showLoading(false);
+
                 if (response.isSuccessful() && response.body() != null) {
                     TermsResponse termsResponse = response.body();
                     int code = termsResponse.getCode();
 
-                    // Đã sửa: Chấp nhận cả mã 0 và 200 cho trạng thái thành công
                     if ((code == 200 || code == 0) && termsResponse.getData() != null) {
                         currentTermsId = termsResponse.getData().getId();
                         tvTermsContent.setText(termsResponse.getData().getContent());
+                        scrollViewTerms.post(TermsFragment.this::showAcceptButtonAtBottom);
                     } else if (code == 4041) {
                         tvTermsContent.setText("Hệ thống đang cập nhật điều khoản. Vui lòng thử lại sau.");
-                        cbCheckpoint1.setEnabled(false);
-                        cbCheckpoint2.setEnabled(false);
+                        btnAcceptAndContinue.setVisibility(View.GONE);
+                    } else {
+                        Toast.makeText(getContext(), termsResponse.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 } else {
                     Toast.makeText(getContext(), "Lỗi tải điều khoản", Toast.LENGTH_SHORT).show();
@@ -144,7 +125,8 @@ public class TermsFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Call<TermsResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<TermsResponse> call, @NonNull Throwable t) {
+                if (!isAdded()) return;
                 showLoading(false);
                 Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -153,7 +135,7 @@ public class TermsFragment extends Fragment {
 
     private void submitCreatorRegistration() {
         if (currentTermsId == null) {
-            Toast.makeText(getContext(), "Chưa tải được Điều khoản", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Chưa tải được điều khoản", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -162,26 +144,27 @@ public class TermsFragment extends Fragment {
 
         apiService.registerCreator(getAuthToken(), request).enqueue(new Callback<CreatorRegisterResponse>() {
             @Override
-            public void onResponse(Call<CreatorRegisterResponse> call, Response<CreatorRegisterResponse> response) {
+            public void onResponse(@NonNull Call<CreatorRegisterResponse> call, @NonNull Response<CreatorRegisterResponse> response) {
+                if (!isAdded()) return;
                 showLoading(false);
+
                 if (response.isSuccessful() && response.body() != null) {
                     int code = response.body().getCode();
-
-                    // Đã sửa: Chấp nhận 200, 201 (Created) hoặc 0 là thành công
                     if (code == 200 || code == 201 || code == 0) {
                         String kycSessionId = response.body().getKycSessionId();
                         Toast.makeText(getContext(), "Đăng ký thành công! Bắt đầu chụp ảnh...", Toast.LENGTH_SHORT).show();
-
                         navigateToCameraFragment(kycSessionId);
-
                     } else {
                         Toast.makeText(getContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_SHORT).show();
                     }
+                } else {
+                    Toast.makeText(getContext(), "Không thể đăng ký creator", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
-            public void onFailure(Call<CreatorRegisterResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<CreatorRegisterResponse> call, @NonNull Throwable t) {
+                if (!isAdded()) return;
                 showLoading(false);
                 Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
@@ -190,7 +173,6 @@ public class TermsFragment extends Fragment {
 
     private void navigateToCameraFragment(String kycSessionId) {
         CameraEkycFragment cameraFragment = new CameraEkycFragment();
-
         Bundle bundle = new Bundle();
         bundle.putString("KYC_SESSION_ID", kycSessionId);
         cameraFragment.setArguments(bundle);
@@ -203,7 +185,21 @@ public class TermsFragment extends Fragment {
 
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        btnAcceptAndContinue.setEnabled(!isLoading && cbCheckpoint1.isChecked() && cbCheckpoint2.isChecked());
-        if (btnBack != null) btnBack.setEnabled(!isLoading);
+        btnAcceptAndContinue.setEnabled(!isLoading);
+        if (btnBack != null) {
+            btnBack.setEnabled(!isLoading);
+        }
+    }
+
+    private void showAcceptButtonAtBottom() {
+        View content = scrollViewTerms.getChildAt(0);
+        if (content == null || currentTermsId == null) {
+            return;
+        }
+
+        int diff = content.getBottom() - (scrollViewTerms.getHeight() + scrollViewTerms.getScrollY());
+        if (diff <= 0) {
+            btnAcceptAndContinue.setVisibility(View.VISIBLE);
+        }
     }
 }

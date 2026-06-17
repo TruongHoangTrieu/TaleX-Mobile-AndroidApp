@@ -3,9 +3,11 @@ package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc;
 import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
+import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,11 +21,16 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ExperimentalGetImage;
+import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.video.FallbackStrategy;
 import androidx.camera.video.FileOutputOptions;
 import androidx.camera.video.Quality;
 import androidx.camera.video.QualitySelector;
@@ -43,10 +50,20 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiS
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.EKycResultResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.utils.ImageCompressor;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.face.Face;
+import com.google.mlkit.vision.face.FaceDetection;
+import com.google.mlkit.vision.face.FaceDetector;
+import com.google.mlkit.vision.face.FaceDetectorOptions;
 
 import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,31 +78,43 @@ import retrofit2.Response;
 public class CameraEkycFragment extends Fragment {
 
     private static final String TAG = "CameraEkycFragment";
+    private static final long LIVENESS_RECORDING_MS = 5000L;
 
-    // UI
     private PreviewView viewFinder;
     private ImageView ivFreezeFrame;
-    private TextView tvStepInstruction, tvSubInstruction;
+    private TextView tvStepInstruction;
+    private TextView tvSubInstruction;
     private View btnCapture;
     private View frameIdCard;
+    private View dimTop;
+    private View dimBottom;
+    private View dimLeft;
+    private View dimRight;
+    private FaceOverlayView faceOverlayView;
     private ProgressBar progressBar;
     private ImageView btnBack;
 
-    // CameraX Core
-    private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private ExecutorService cameraExecutor;
     private ProcessCameraProvider cameraProvider;
+    private ImageCapture imageCapture;
+    private VideoCapture<Recorder> videoCapture;
+    private ImageAnalysis imageAnalysis;
+    private Recording currentRecording;
+    private FaceDetector faceDetector;
 
-    // CameraX UseCases
-    private ImageCapture imageCapture; // Dùng cho B1, B2
-    private VideoCapture<Recorder> videoCapture; // Dùng cho B3
-    private Recording currentRecording = null; // Trạng thái đang quay video
+    private final Handler livenessHandler = new Handler(Looper.getMainLooper());
+    private Runnable countdownRunnable;
+    private Runnable autoStopRunnable;
 
-    // Logic State
     private String kycSessionId;
     private ApiService apiService;
     private int currentStep = 1;
-    private File frontCroppedFile = null;
+    private File frontCroppedFile;
+    private boolean isFaceTaskRunning;
+    private boolean isRecordingCanceled;
+    private boolean isFinalizingRecording;
+    private boolean isLivenessUploading;
+    private long recordingEndsAtMillis;
 
     private ActivityResultLauncher<String[]> requestPermissionsLauncher;
 
@@ -98,12 +127,17 @@ public class CameraEkycFragment extends Fragment {
             kycSessionId = getArguments().getString("KYC_SESSION_ID");
         }
 
-        // Đã sửa: Phải xin quyền cả CAMERA và AUDIO vì quay video liveness cần ghi âm
+        FaceDetectorOptions detectorOptions = new FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .enableTracking()
+                .build();
+        faceDetector = FaceDetection.getClient(detectorOptions);
+
         requestPermissionsLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
                 permissions -> {
-                    Boolean cameraGranted = permissions.getOrDefault(Manifest.permission.CAMERA, false);
-                    Boolean audioGranted = permissions.getOrDefault(Manifest.permission.RECORD_AUDIO, false);
+                    boolean cameraGranted = Boolean.TRUE.equals(permissions.get(Manifest.permission.CAMERA));
+                    boolean audioGranted = Boolean.TRUE.equals(permissions.get(Manifest.permission.RECORD_AUDIO));
 
                     if (cameraGranted && audioGranted) {
                         startCameraForCurrentStep();
@@ -131,12 +165,25 @@ public class CameraEkycFragment extends Fragment {
         tvSubInstruction = view.findViewById(R.id.tvSubInstruction);
         btnCapture = view.findViewById(R.id.btnCapture);
         frameIdCard = view.findViewById(R.id.frameIdCard);
+        dimTop = view.findViewById(R.id.dimTop);
+        dimBottom = view.findViewById(R.id.dimBottom);
+        dimLeft = view.findViewById(R.id.dimLeft);
+        dimRight = view.findViewById(R.id.dimRight);
+        faceOverlayView = view.findViewById(R.id.faceOverlayView);
         progressBar = view.findViewById(R.id.progressBar);
         btnBack = view.findViewById(R.id.btnBack);
 
         apiService = ApiClient.getApiService();
 
+        getParentFragmentManager().setFragmentResultListener(
+                ReviewEkycDataFragment.REQUEST_REVIEW_CONFIRMED,
+                getViewLifecycleOwner(),
+                (requestKey, result) -> onReviewConfirmed()
+        );
+
         setupUIForStep(currentStep);
+        btnCapture.setOnClickListener(v -> takePhoto());
+        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
 
         if (allPermissionsGranted()) {
             startCameraForCurrentStep();
@@ -146,95 +193,112 @@ public class CameraEkycFragment extends Fragment {
                     Manifest.permission.RECORD_AUDIO
             });
         }
+    }
 
-        btnCapture.setOnClickListener(v -> {
-            if (currentStep == 1 || currentStep == 2) {
-                takePhoto();
-            } else if (currentStep == 3) {
-                captureVideo();
-            }
-        });
-
-        btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+    public void onReviewConfirmed() {
+        currentStep = 3;
+        setupUIForStep(currentStep);
+        startCameraForCurrentStep();
     }
 
     private boolean allPermissionsGranted() {
-        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void setupUIForStep(int step) {
         ivFreezeFrame.setVisibility(View.GONE);
+        progressBar.setVisibility(View.GONE);
+
+        boolean isLivenessStep = step == 3;
+        setViewVisible(dimTop, !isLivenessStep);
+        setViewVisible(dimBottom, !isLivenessStep);
+        setViewVisible(dimLeft, !isLivenessStep);
+        setViewVisible(dimRight, !isLivenessStep);
+        setViewVisible(frameIdCard, !isLivenessStep);
+        setViewVisible(btnCapture, !isLivenessStep);
+        faceOverlayView.setVisibility(isLivenessStep ? View.VISIBLE : View.GONE);
 
         if (step == 1) {
             tvStepInstruction.setText("Bước 1/3: Mặt trước CCCD");
             tvSubInstruction.setText("Vui lòng căn chỉnh giấy tờ vào trong khung hình.");
-
-            frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_id_frame);
-            ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
-            params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            params.height = (int) (220 * getResources().getDisplayMetrics().density);
-            frameIdCard.setLayoutParams(params);
-
         } else if (step == 2) {
             tvStepInstruction.setText("Bước 2/3: Mặt sau CCCD");
             tvSubInstruction.setText("Lật mặt sau giấy tờ và giữ cố định thiết bị.");
-
-        } else if (step == 3) {
+        } else {
+            faceOverlayView.setBorderState(FaceOverlayView.OverlayState.DEFAULT);
             tvStepInstruction.setText("Bước 3/3: Xác thực khuôn mặt");
-            tvSubInstruction.setText("Nhấn nút để bắt đầu quay video khuôn mặt (3-5 giây).");
-
-            frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_face_frame);
-            ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
-            // ĐÃ SỬA: Giảm kích thước khung tròn xuống 260dp để không bị vỡ font chữ
-            int size = (int) (260 * getResources().getDisplayMetrics().density);
-            params.width = size;
-            params.height = size;
-            frameIdCard.setLayoutParams(params);
+            tvSubInstruction.setText("Đưa khuôn mặt vào khung để hệ thống tự quay video.");
         }
     }
 
-    /**
-     * Khởi động Camera linh hoạt dựa trên Bước hiện tại (Mặt trước/Mặt sau -> Cam sau, Liveness -> Cam trước)
-     */
+    private void setViewVisible(View view, boolean visible) {
+        if (view != null) {
+            view.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
     private void startCameraForCurrentStep() {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
         cameraProviderFuture.addListener(() -> {
             try {
                 cameraProvider = cameraProviderFuture.get();
-                cameraProvider.unbindAll(); // Reset toàn bộ
+                cameraProvider.unbindAll();
 
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(viewFinder.getSurfaceProvider());
 
                 if (currentStep == 1 || currentStep == 2) {
-                    // Dùng Camera Sau để chụp ảnh
                     imageCapture = new ImageCapture.Builder().build();
-                    CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
-                    cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, imageCapture);
-
-                } else if (currentStep == 3) {
-                    // Dùng Camera Trước để quay Video (Chất lượng HD 720p để đảm bảo dung lượng < 15MB)
-                    Recorder recorder = new Recorder.Builder()
-                            .setQualitySelector(QualitySelector.from(Quality.HD))
-                            .build();
-                    videoCapture = VideoCapture.withOutput(recorder);
-                    CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
-                    cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, videoCapture);
+                    videoCapture = null;
+                    imageAnalysis = null;
+                    cameraProvider.bindToLifecycle(
+                            getViewLifecycleOwner(),
+                            CameraSelector.DEFAULT_BACK_CAMERA,
+                            preview,
+                            imageCapture
+                    );
+                } else {
+                    bindLivenessUseCases(preview);
                 }
-
             } catch (ExecutionException | InterruptedException e) {
-                Log.e(TAG, "Lỗi khởi tạo camera", e);
+                Log.e(TAG, "Cannot start camera", e);
             }
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
-    private void takePhoto() {
-        if (imageCapture == null) return;
+    private void bindLivenessUseCases(Preview preview) {
+        imageCapture = null;
 
-        Bitmap frozenBitmap = viewFinder.getBitmap();
-        if (frozenBitmap != null) {
-            ivFreezeFrame.setImageBitmap(frozenBitmap);
+        Recorder recorder = new Recorder.Builder()
+                .setQualitySelector(QualitySelector.from(
+                        Quality.FHD,
+                        FallbackStrategy.higherQualityOrLowerThan(Quality.FHD)
+                ))
+                .build();
+
+        videoCapture = VideoCapture.withOutput(recorder);
+        imageAnalysis = new ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build();
+        imageAnalysis.setAnalyzer(cameraExecutor, this::analyzeFaceFrame);
+
+        cameraProvider.bindToLifecycle(
+                getViewLifecycleOwner(),
+                CameraSelector.DEFAULT_FRONT_CAMERA,
+                preview,
+                videoCapture,
+                imageAnalysis
+        );
+    }
+
+    private void takePhoto() {
+        if (imageCapture == null || currentStep == 3) {
+            return;
+        }
+
+        if (viewFinder.getBitmap() != null) {
+            ivFreezeFrame.setImageBitmap(viewFinder.getBitmap());
             ivFreezeFrame.setVisibility(View.VISIBLE);
         }
 
@@ -242,7 +306,6 @@ public class CameraEkycFragment extends Fragment {
         ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
         showLoading(true);
-
         imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(requireContext()), new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
@@ -264,64 +327,8 @@ public class CameraEkycFragment extends Fragment {
         });
     }
 
-    /**
-     * Logic quay video trực tiếp trong App
-     */
-    private void captureVideo() {
-        if (videoCapture == null) return;
-
-        // Nếu đang quay rồi thì bấm phát nữa là Dừng lại
-        if (currentRecording != null) {
-            currentRecording.stop();
-            currentRecording = null;
-            return;
-        }
-
-        // Bắt đầu quay
-        File videoFile = new File(requireContext().getCacheDir(), "liveness_" + System.currentTimeMillis() + ".mp4");
-        FileOutputOptions outputOptions = new FileOutputOptions.Builder(videoFile).build();
-
-        try {
-            currentRecording = videoCapture.getOutput()
-                    .prepareRecording(requireContext(), outputOptions)
-                    .withAudioEnabled()
-                    .start(ContextCompat.getMainExecutor(requireContext()), videoRecordEvent -> {
-                        if (videoRecordEvent instanceof VideoRecordEvent.Start) {
-                            // UI: Đổi text hướng dẫn để user biết đang quay
-                            tvSubInstruction.setText("Đang ghi hình... Nhấn nút lần nữa để Dừng.");
-                            tvSubInstruction.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_light));
-                            btnCapture.setAlpha(0.5f); // Làm mờ nút đi 1 xíu
-                        } else if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
-                            VideoRecordEvent.Finalize finalizeEvent = (VideoRecordEvent.Finalize) videoRecordEvent;
-
-                            // Reset UI
-                            btnCapture.setAlpha(1.0f);
-                            tvSubInstruction.setText("Đang xử lý dữ liệu khuôn mặt...");
-                            tvSubInstruction.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
-
-                            if (!finalizeEvent.hasError()) {
-                                uploadLiveness(videoFile);
-                            } else {
-                                if (currentRecording != null) currentRecording.close();
-                                currentRecording = null;
-                                Toast.makeText(requireContext(), "Lỗi quay video: " + finalizeEvent.getError(), Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
-        } catch (SecurityException e) {
-            Toast.makeText(requireContext(), "Lỗi quyền truy cập Microphone", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private void uploadFrontId(Uri uri) {
-        int pW = viewFinder.getWidth();
-        int pH = viewFinder.getHeight();
-        float fX = frameIdCard.getX();
-        float fY = frameIdCard.getY();
-        float fW = frameIdCard.getWidth();
-        float fH = frameIdCard.getHeight();
-
-        frontCroppedFile = ImageCompressor.processAndCropImage(requireContext(), uri, "frontImage", pW, pH, fX, fY, fW, fH);
+        frontCroppedFile = cropImage(uri, "frontImage");
         MultipartBody.Part imagePart = ImageCompressor.buildMultipart("frontImage", frontCroppedFile);
 
         if (imagePart == null) {
@@ -336,28 +343,13 @@ public class CameraEkycFragment extends Fragment {
                 if (!isAdded()) return;
                 showLoading(false);
 
-                try {
-                    if (response.isSuccessful() && response.body() != null) {
-                        EKycResultResponse result = response.body();
-                        EKycResultResponse.EKycData data = result.getData();
-
-                        // ĐÃ SỬA: Đọc chuẩn isSuccess từ Data của Backend trả về
-                        if (data != null && data.isSuccess()) {
-                            currentStep = 2;
-                            setupUIForStep(currentStep);
-                            Toast.makeText(getContext(), "Xong mặt trước! Vui lòng lật mặt sau.", Toast.LENGTH_SHORT).show();
-                        } else {
-                            ivFreezeFrame.setVisibility(View.GONE);
-                            String errorMsg = (data != null && data.getMessage() != null) ? data.getMessage() : result.getMessage();
-                            Toast.makeText(getContext(), "Lỗi: " + errorMsg, Toast.LENGTH_LONG).show();
-                        }
-                    } else {
-                        ivFreezeFrame.setVisibility(View.GONE);
-                        Toast.makeText(getContext(), "Thẻ không hợp lệ (HTTP " + response.code() + ")", Toast.LENGTH_LONG).show();
-                    }
-                } catch (Exception e) {
+                if (isSuccessResponse(response)) {
+                    currentStep = 2;
+                    setupUIForStep(currentStep);
+                    Toast.makeText(getContext(), "Xong mặt trước! Vui lòng lật mặt sau.", Toast.LENGTH_SHORT).show();
+                } else {
                     ivFreezeFrame.setVisibility(View.GONE);
-                    Log.e(TAG, "Lỗi Parse Data: ", e);
+                    Toast.makeText(getContext(), getErrorMessage(response, "Thẻ không hợp lệ"), Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -372,14 +364,7 @@ public class CameraEkycFragment extends Fragment {
     }
 
     private void uploadBackId(Uri uri) {
-        int pW = viewFinder.getWidth();
-        int pH = viewFinder.getHeight();
-        float fX = frameIdCard.getX();
-        float fY = frameIdCard.getY();
-        float fW = frameIdCard.getWidth();
-        float fH = frameIdCard.getHeight();
-
-        File backCroppedFile = ImageCompressor.processAndCropImage(requireContext(), uri, "backImage", pW, pH, fX, fY, fW, fH);
+        File backCroppedFile = cropImage(uri, "backImage");
         MultipartBody.Part imagePart = ImageCompressor.buildMultipart("backImage", backCroppedFile);
 
         if (imagePart == null) {
@@ -392,30 +377,13 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 if (!isAdded()) return;
-                showLoading(false);
 
-                if (response.isSuccessful() && response.body() != null) {
-                    try {
-                        EKycResultResponse result = response.body();
-                        EKycResultResponse.EKycData data = result.getData();
-
-                        if (data != null && data.isSuccess()) {
-                            currentStep = 3;
-                            setupUIForStep(currentStep);
-                            startCameraForCurrentStep(); // Chuyển sang Camera trước
-                            Toast.makeText(getContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
-                        } else {
-                            ivFreezeFrame.setVisibility(View.GONE);
-                            String errorMsg = (data != null && data.getMessage() != null) ? data.getMessage() : result.getMessage();
-                            Toast.makeText(getContext(), "Lỗi: " + errorMsg, Toast.LENGTH_LONG).show();
-                        }
-                    } catch (Exception e) {
-                        ivFreezeFrame.setVisibility(View.GONE);
-                        Log.e(TAG, "Lỗi Parse Data: ", e);
-                    }
+                if (isSuccessResponse(response)) {
+                    fetchCreatorIdentityAndOpenReview();
                 } else {
+                    showLoading(false);
                     ivFreezeFrame.setVisibility(View.GONE);
-                    Toast.makeText(getContext(), "Ảnh mặt sau không hợp lệ.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), getErrorMessage(response, "Ảnh mặt sau không hợp lệ"), Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -429,17 +397,206 @@ public class CameraEkycFragment extends Fragment {
         });
     }
 
+    private File cropImage(Uri uri, String partName) {
+        int pW = viewFinder.getWidth();
+        int pH = viewFinder.getHeight();
+        float fX = frameIdCard.getX();
+        float fY = frameIdCard.getY();
+        float fW = frameIdCard.getWidth();
+        float fH = frameIdCard.getHeight();
+        return ImageCompressor.processAndCropImage(requireContext(), uri, partName, pW, pH, fX, fY, fW, fH);
+    }
+
+    private void fetchCreatorIdentityAndOpenReview() {
+        apiService.getCreatorIdentities(getAuthToken()).enqueue(new Callback<JsonElement>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonElement> call, @NonNull Response<JsonElement> response) {
+                if (!isAdded()) return;
+                showLoading(false);
+
+                JsonElement body = response.body();
+                String fullName = readIdentityValue(body, "fullName", "fullname", "name", "hoTen", "ownerName");
+                String idNumber = readIdentityValue(body, "idNumber", "identityNumber", "identityCardNumber", "cardNumber", "citizenId", "cccd", "personalId");
+                String dob = readIdentityValue(body, "dateOfBirth", "dob", "birthDate", "ngaySinh");
+
+                openReviewFragment(idNumber, fullName, dob);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonElement> call, @NonNull Throwable t) {
+                if (!isAdded()) return;
+                showLoading(false);
+                Toast.makeText(getContext(), "Không lấy được thông tin OCR: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                openReviewFragment(null, null, null);
+            }
+        });
+    }
+
+    private void openReviewFragment(String idNumber, String fullName, String dob) {
+        String frontImagePath = frontCroppedFile != null ? frontCroppedFile.getAbsolutePath() : null;
+        ReviewEkycDataFragment fragment = ReviewEkycDataFragment.newInstance(frontImagePath, idNumber, fullName, dob);
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    @OptIn(markerClass = ExperimentalGetImage.class)
+    private void analyzeFaceFrame(@NonNull ImageProxy imageProxy) {
+        if (currentStep != 3 || isFaceTaskRunning || isLivenessUploading) {
+            imageProxy.close();
+            return;
+        }
+
+        Image mediaImage = imageProxy.getImage();
+        if (mediaImage == null) {
+            imageProxy.close();
+            return;
+        }
+
+        isFaceTaskRunning = true;
+        InputImage inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+        faceDetector.process(inputImage)
+                .addOnSuccessListener(this::handleFaceResult)
+                .addOnFailureListener(e -> Log.e(TAG, "Face detection failed", e))
+                .addOnCompleteListener(task -> {
+                    isFaceTaskRunning = false;
+                    imageProxy.close();
+                });
+    }
+
+    private void handleFaceResult(List<Face> faces) {
+        if (!isAdded() || currentStep != 3 || isLivenessUploading) {
+            return;
+        }
+
+        requireActivity().runOnUiThread(() -> {
+            if (faces.size() == 1) {
+                faceOverlayView.setBorderState(FaceOverlayView.OverlayState.SUCCESS);
+                if (currentRecording == null && !isFinalizingRecording) {
+                    startLivenessRecording();
+                }
+            } else {
+                if (currentRecording != null) {
+                    cancelLivenessRecording();
+                } else if (!isFinalizingRecording) {
+                    faceOverlayView.setBorderState(FaceOverlayView.OverlayState.DEFAULT);
+                    tvSubInstruction.setText("Đưa đúng một khuôn mặt vào khung.");
+                }
+            }
+        });
+    }
+
+    private void startLivenessRecording() {
+        if (videoCapture == null || currentRecording != null || isFinalizingRecording || isLivenessUploading) {
+            return;
+        }
+
+        File videoFile = new File(requireContext().getCacheDir(), "liveness_" + System.currentTimeMillis() + ".mp4");
+        FileOutputOptions outputOptions = new FileOutputOptions.Builder(videoFile).build();
+        isRecordingCanceled = false;
+
+        try {
+            currentRecording = videoCapture.getOutput()
+                    .prepareRecording(requireContext(), outputOptions)
+                    .withAudioEnabled()
+                    .start(ContextCompat.getMainExecutor(requireContext()), event -> handleVideoEvent(event, videoFile));
+        } catch (SecurityException e) {
+            Toast.makeText(requireContext(), "Lỗi quyền truy cập Microphone", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void handleVideoEvent(VideoRecordEvent event, File videoFile) {
+        if (event instanceof VideoRecordEvent.Start) {
+            recordingEndsAtMillis = System.currentTimeMillis() + LIVENESS_RECORDING_MS;
+            tvSubInstruction.setText("Đang ghi hình: 5s");
+            startCountdownText();
+            autoStopRunnable = () -> stopLivenessRecording(false);
+            livenessHandler.postDelayed(autoStopRunnable, LIVENESS_RECORDING_MS);
+        } else if (event instanceof VideoRecordEvent.Finalize) {
+            VideoRecordEvent.Finalize finalizeEvent = (VideoRecordEvent.Finalize) event;
+            livenessHandler.removeCallbacksAndMessages(null);
+            currentRecording = null;
+            isFinalizingRecording = false;
+
+            if (isRecordingCanceled) {
+                deleteQuietly(videoFile);
+                faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
+                tvSubInstruction.setText("Mặt rời khỏi khung. Vui lòng đưa mặt vào lại.");
+                livenessHandler.postDelayed(() -> {
+                    if (!isAdded() || currentStep != 3) return;
+                    faceOverlayView.setBorderState(FaceOverlayView.OverlayState.DEFAULT);
+                    tvSubInstruction.setText("Đưa khuôn mặt vào khung để hệ thống tự quay video.");
+                }, 1200L);
+                return;
+            }
+
+            if (!finalizeEvent.hasError()) {
+                uploadLiveness(videoFile);
+            } else {
+                deleteQuietly(videoFile);
+                faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
+                tvSubInstruction.setText("Lỗi quay video. Vui lòng thử lại.");
+                Toast.makeText(requireContext(), "Lỗi quay video: " + finalizeEvent.getError(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void startCountdownText() {
+        countdownRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded() || currentRecording == null) {
+                    return;
+                }
+
+                long remainingMs = Math.max(0L, recordingEndsAtMillis - System.currentTimeMillis());
+                int remainingSeconds = (int) Math.ceil(remainingMs / 1000.0);
+                tvSubInstruction.setText("Đang ghi hình: " + remainingSeconds + "s");
+
+                if (remainingMs > 0L) {
+                    livenessHandler.postDelayed(this, 250L);
+                }
+            }
+        };
+        livenessHandler.post(countdownRunnable);
+    }
+
+    private void cancelLivenessRecording() {
+        faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
+        tvSubInstruction.setText("Mặt rời khỏi khung. Đang hủy video...");
+        stopLivenessRecording(true);
+    }
+
+    private void stopLivenessRecording(boolean canceled) {
+        if (currentRecording == null) {
+            return;
+        }
+
+        isRecordingCanceled = canceled;
+        isFinalizingRecording = true;
+        if (autoStopRunnable != null) {
+            livenessHandler.removeCallbacks(autoStopRunnable);
+        }
+        if (countdownRunnable != null) {
+            livenessHandler.removeCallbacks(countdownRunnable);
+        }
+        currentRecording.stop();
+    }
+
     private void uploadLiveness(File videoFile) {
+        isLivenessUploading = true;
         showLoading(true);
+        tvSubInstruction.setText("Đang xác thực khuôn mặt...");
 
         MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
-
         RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), videoFile);
         MultipartBody.Part videoPart = MultipartBody.Part.createFormData("video", videoFile.getName(), reqFile);
 
-        if (cmndPart == null || videoPart == null) {
+        if (cmndPart == null) {
+            isLivenessUploading = false;
             showLoading(false);
-            Toast.makeText(requireContext(), "Lỗi trích xuất file Media", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Không tìm thấy ảnh mặt trước CCCD", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -448,24 +605,17 @@ public class CameraEkycFragment extends Fragment {
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 if (!isAdded()) return;
                 showLoading(false);
+                isLivenessUploading = false;
 
-                if (response.isSuccessful() && response.body() != null) {
-                    try {
-                        EKycResultResponse result = response.body();
-                        EKycResultResponse.EKycData data = result.getData();
-
-                        if (data != null && data.isSuccess()) {
-                            Toast.makeText(getContext(), "eKYC THÀNH CÔNG TỐT ĐẸP!", Toast.LENGTH_LONG).show();
-                            if (getActivity() != null) getActivity().finish();
-                        } else {
-                            String errorMsg = (data != null && data.getMessage() != null) ? data.getMessage() : result.getMessage();
-                            Toast.makeText(getContext(), "Lỗi Khuôn mặt: " + errorMsg, Toast.LENGTH_LONG).show();
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Lỗi Parse Data: ", e);
+                if (isSuccessResponse(response)) {
+                    Toast.makeText(getContext(), "eKYC thành công!", Toast.LENGTH_LONG).show();
+                    if (getActivity() instanceof EkycActivity) {
+                        ((EkycActivity) getActivity()).finishWithSuccess();
                     }
                 } else {
-                    Toast.makeText(getContext(), "Xác thực khuôn mặt thất bại.", Toast.LENGTH_LONG).show();
+                    faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
+                    tvSubInstruction.setText("Xác thực thất bại. Đưa mặt vào khung để thử lại.");
+                    Toast.makeText(getContext(), getErrorMessage(response, "Xác thực khuôn mặt thất bại"), Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -473,22 +623,102 @@ public class CameraEkycFragment extends Fragment {
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
                 if (!isAdded()) return;
                 showLoading(false);
+                isLivenessUploading = false;
+                faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
+                tvSubInstruction.setText("Lỗi mạng. Đưa mặt vào khung để thử lại.");
                 Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private boolean isSuccessResponse(Response<EKycResultResponse> response) {
+        if (!response.isSuccessful() || response.body() == null) {
+            return false;
+        }
+        EKycResultResponse.EKycData data = response.body().getData();
+        return data != null && data.isSuccess();
+    }
+
+    private String getErrorMessage(Response<EKycResultResponse> response, String fallback) {
+        if (response.body() == null) {
+            return fallback + " (HTTP " + response.code() + ")";
+        }
+
+        EKycResultResponse result = response.body();
+        EKycResultResponse.EKycData data = result.getData();
+        if (data != null && data.getMessage() != null) {
+            return data.getMessage();
+        }
+        if (result.getMessage() != null) {
+            return result.getMessage();
+        }
+        return fallback;
+    }
+
+    private String readIdentityValue(JsonElement element, String... keys) {
+        if (element == null || element.isJsonNull()) {
+            return null;
+        }
+
+        if (element.isJsonObject()) {
+            JsonObject object = element.getAsJsonObject();
+            for (String key : keys) {
+                String directValue = readDirectValue(object, key);
+                if (directValue != null) {
+                    return directValue;
+                }
+            }
+
+            for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+                String nestedValue = readIdentityValue(entry.getValue(), keys);
+                if (nestedValue != null) {
+                    return nestedValue;
+                }
+            }
+        } else if (element.isJsonArray()) {
+            JsonArray array = element.getAsJsonArray();
+            for (JsonElement item : array) {
+                String nestedValue = readIdentityValue(item, keys);
+                if (nestedValue != null) {
+                    return nestedValue;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String readDirectValue(JsonObject object, String targetKey) {
+        for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            if (!entry.getKey().equalsIgnoreCase(targetKey)) {
+                continue;
+            }
+
+            JsonElement value = entry.getValue();
+            if (value != null && value.isJsonPrimitive()) {
+                String text = value.getAsString();
+                if (text != null && !text.trim().isEmpty()) {
+                    return text.trim();
+                }
+            }
+        }
+        return null;
     }
 
     private String getAuthToken() {
         try {
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
             SharedPreferences securePrefs = EncryptedSharedPreferences.create(
-                    "TaleXSecurePref", masterKeyAlias, requireContext(),
+                    "TaleXSecurePref",
+                    masterKeyAlias,
+                    requireContext(),
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
             String token = securePrefs.getString("ACCESS_TOKEN", "");
             return (!token.isEmpty() && !token.startsWith("Bearer ")) ? "Bearer " + token : token;
         } catch (GeneralSecurityException | IOException e) {
+            Log.e(TAG, "Cannot read secure token", e);
             return "";
         }
     }
@@ -499,12 +729,33 @@ public class CameraEkycFragment extends Fragment {
         btnBack.setEnabled(!isLoading);
     }
 
+    private void deleteQuietly(File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            Log.w(TAG, "Cannot delete temp file: " + file.getAbsolutePath());
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        livenessHandler.removeCallbacksAndMessages(null);
+        if (currentRecording != null) {
+            currentRecording.stop();
+            currentRecording = null;
+        }
+        if (cameraProvider != null) {
+            cameraProvider.unbindAll();
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (currentRecording != null) {
-            currentRecording.stop();
+        if (faceDetector != null) {
+            faceDetector.close();
         }
-        cameraExecutor.shutdown();
+        if (cameraExecutor != null) {
+            cameraExecutor.shutdown();
+        }
     }
 }

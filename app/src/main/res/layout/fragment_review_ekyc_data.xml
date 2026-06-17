@@ -10,8 +10,8 @@
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:padding="16dp"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -19,26 +19,28 @@
             android:id="@+id/btnBack"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:padding="12dp"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Quay lại"
+            android:padding="12dp"
             android:src="@drawable/ic_arrow_back"
             app:tint="#D4AF37" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
             android:text="Kiểm tra thông tin"
             android:textColor="#D4AF37"
             android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginStart="8dp" />
+            android:textStyle="bold" />
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        app:layout_constraintBottom_toTopOf="@id/bottomLayout">
+        app:layout_constraintBottom_toTopOf="@id/bottomLayout"
+        app:layout_constraintTop_toBottomOf="@id/topBar">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -50,9 +52,9 @@
                 android:id="@+id/ivFrontId"
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
+                android:background="#1A1A1A"
                 android:scaleType="centerCrop"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium"
-                android:background="#1A1A1A" />
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.MediumComponent" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -66,25 +68,74 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
                 android:layout_marginTop="16dp"
                 android:background="#1A1A1A"
+                android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Số CCCD" android:textColor="#888888" android:textSize="12sp"/>
-                <TextView android:id="@+id/tvIdNumber" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="4dp" android:text="--"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Số CCCD"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="12dp"/>
+                <TextView
+                    android:id="@+id/tvIdNumber"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Họ và tên" android:textColor="#888888" android:textSize="12sp"/>
-                <TextView android:id="@+id/tvFullName" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="4dp" android:text="--"/>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="12dp"
+                    android:background="#333333" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="12dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Họ và tên"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ngày sinh" android:textColor="#888888" android:textSize="12sp"/>
-                <TextView android:id="@+id/tvDob" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="4dp" android:text="--"/>
+                <TextView
+                    android:id="@+id/tvFullName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="12dp"
+                    android:background="#333333" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ngày sinh"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvDob"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
             </LinearLayout>
-
         </LinearLayout>
     </ScrollView>
 
@@ -101,12 +152,12 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="56dp"
-            android:layout_weight="1"
             android:layout_marginEnd="12dp"
+            android:layout_weight="1"
             android:text="Chụp lại"
             android:textColor="#D4AF37"
-            app:strokeColor="#D4AF37"
-            app:cornerRadius="8dp" />
+            app:cornerRadius="8dp"
+            app:strokeColor="#D4AF37" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConfirm"

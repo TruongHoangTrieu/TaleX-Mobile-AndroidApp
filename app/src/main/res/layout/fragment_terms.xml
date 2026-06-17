@@ -40,7 +40,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="20dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="0dp"
         android:background="#1E1E1E"
         android:padding="16dp"
         app:layout_constraintBottom_toTopOf="@+id/btnAcceptAndContinue"
@@ -52,9 +52,9 @@
             android:id="@+id/tvTermsContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:lineSpacingExtra="4dp"
             android:textColor="#E0E0E0"
             android:textSize="14sp"
-            android:lineSpacingExtra="4dp"
             tools:text="Đang tải điều khoản từ hệ thống..." />
     </ScrollView>
 
@@ -77,8 +77,8 @@
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone"
         android:indeterminateTint="#D4AF37"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

@@ -17,9 +17,9 @@
         android:id="@+id/ivFreezeFrame"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:importantForAccessibility="no"
         android:scaleType="centerCrop"
-        android:visibility="gone"
-        android:importantForAccessibility="no" />
+        android:visibility="gone" />
 
     <View
         android:id="@+id/dimTop"
@@ -72,32 +72,48 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/btnBack"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="16dp"
-        android:padding="12dp"
-        android:src="@android:drawable/ic_menu_revert"
-        android:contentDescription="Quay lại"
-        app:tint="#D4AF37"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc.FaceOverlayView
+        android:id="@+id/faceOverlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/tvStepInstruction"
+    <LinearLayout
+        android:id="@+id/topBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Chụp mặt trước\nCCCD"
-        android:textColor="#D4AF37"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_marginStart="8dp"
-        app:layout_constraintBottom_toBottomOf="@+id/btnBack"
-        app:layout_constraintStart_toEndOf="@+id/btnBack"
-        app:layout_constraintTop_toTopOf="@+id/btnBack" />
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Quay lại"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="#D4AF37" />
+
+        <TextView
+            android:id="@+id/tvStepInstruction"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Chụp mặt trước CCCD"
+            android:textColor="#D4AF37"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottomPanel"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="32dp"
@@ -124,8 +140,8 @@
             android:layout_marginBottom="48dp"
             android:background="@drawable/bg_capture_outer"
             android:clickable="true"
-            android:focusable="true"
             android:contentDescription="Nút chụp ảnh"
+            android:focusable="true"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
@@ -147,7 +163,6 @@
             app:layout_constraintEnd_toEndOf="@+id/btnCapture"
             app:layout_constraintStart_toStartOf="@+id/btnCapture"
             app:layout_constraintTop_toTopOf="@+id/btnCapture" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
