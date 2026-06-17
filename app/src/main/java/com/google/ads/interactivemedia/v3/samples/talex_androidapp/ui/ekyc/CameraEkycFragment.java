@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
@@ -84,7 +85,10 @@ public class CameraEkycFragment extends Fragment {
     private ImageView ivFreezeFrame;
     private TextView tvStepInstruction;
     private TextView tvSubInstruction;
+    private TextView tvFaceGuide;
+    private TextView tvFaceFooter;
     private View btnCapture;
+    private View bottomPanel;
     private View frameIdCard;
     private View dimTop;
     private View dimBottom;
@@ -165,7 +169,10 @@ public class CameraEkycFragment extends Fragment {
         ivFreezeFrame = view.findViewById(R.id.ivFreezeFrame);
         tvStepInstruction = view.findViewById(R.id.tvStepInstruction);
         tvSubInstruction = view.findViewById(R.id.tvSubInstruction);
+        tvFaceGuide = view.findViewById(R.id.tvFaceGuide);
+        tvFaceFooter = view.findViewById(R.id.tvFaceFooter);
         btnCapture = view.findViewById(R.id.btnCapture);
+        bottomPanel = view.findViewById(R.id.bottomPanel);
         frameIdCard = view.findViewById(R.id.frameIdCard);
         dimTop = view.findViewById(R.id.dimTop);
         dimBottom = view.findViewById(R.id.dimBottom);
@@ -204,7 +211,8 @@ public class CameraEkycFragment extends Fragment {
     }
 
     public void onRetakeRequested() {
-        currentStep = 2;
+        currentStep = 1;
+        frontCroppedFile = null;
         isFaceTaskRunning = false;
         isRecordingCanceled = false;
         isFinalizingRecording = false;
@@ -229,7 +237,11 @@ public class CameraEkycFragment extends Fragment {
         setViewVisible(dimRight, !isLivenessStep);
         setViewVisible(frameIdCard, !isLivenessStep);
         setViewVisible(btnCapture, !isLivenessStep);
+        setViewVisible(bottomPanel, !isLivenessStep);
+        setViewVisible(tvFaceGuide, isLivenessStep);
+        setViewVisible(tvFaceFooter, isLivenessStep);
         faceOverlayView.setVisibility(isLivenessStep ? View.VISIBLE : View.GONE);
+        tvStepInstruction.setTextColor(Color.parseColor(isLivenessStep ? "#FFFFFF" : "#D4AF37"));
 
         if (step == 1) {
             tvStepInstruction.setText("Bước 1/3: Mặt trước CCCD");
@@ -240,13 +252,20 @@ public class CameraEkycFragment extends Fragment {
         } else {
             faceOverlayView.setBorderState(FaceOverlayView.OverlayState.DEFAULT);
             tvStepInstruction.setText("Bước 3/3: Xác thực khuôn mặt");
-            tvSubInstruction.setText("Đưa khuôn mặt vào khung để hệ thống tự quay video.");
+            setLivenessInstruction("Đưa khuôn mặt vào khung");
         }
     }
 
     private void setViewVisible(View view, boolean visible) {
         if (view != null) {
             view.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void setLivenessInstruction(String message) {
+        tvSubInstruction.setText(message);
+        if (tvFaceGuide != null) {
+            tvFaceGuide.setText(message);
         }
     }
 
@@ -509,7 +528,7 @@ public class CameraEkycFragment extends Fragment {
                     cancelLivenessRecording();
                 } else if (!isFinalizingRecording) {
                     faceOverlayView.setBorderState(FaceOverlayView.OverlayState.DEFAULT);
-                    tvSubInstruction.setText("Đưa đúng một khuôn mặt vào khung.");
+                    setLivenessInstruction("Đưa đúng một khuôn mặt vào khung");
                 }
             }
         });
@@ -546,7 +565,7 @@ public class CameraEkycFragment extends Fragment {
 
         if (event instanceof VideoRecordEvent.Start) {
             recordingEndsAtMillis = System.currentTimeMillis() + LIVENESS_RECORDING_MS;
-            tvSubInstruction.setText("Đang ghi hình: 5s");
+            setLivenessInstruction("Đang ghi hình: 5s");
             startCountdownText();
             autoStopRunnable = () -> stopLivenessRecording(false);
             livenessHandler.postDelayed(autoStopRunnable, LIVENESS_RECORDING_MS);
@@ -559,11 +578,11 @@ public class CameraEkycFragment extends Fragment {
             if (isRecordingCanceled) {
                 deleteQuietly(videoFile);
                 faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
-                tvSubInstruction.setText("Mặt rời khỏi khung. Vui lòng đưa mặt vào lại.");
+                setLivenessInstruction("Mặt rời khỏi khung");
                 livenessHandler.postDelayed(() -> {
                     if (!hasLiveUi() || currentStep != 3) return;
                     faceOverlayView.setBorderState(FaceOverlayView.OverlayState.DEFAULT);
-                    tvSubInstruction.setText("Đưa khuôn mặt vào khung để hệ thống tự quay video.");
+                    setLivenessInstruction("Đưa khuôn mặt vào khung");
                 }, 1200L);
                 return;
             }
@@ -573,7 +592,7 @@ public class CameraEkycFragment extends Fragment {
             } else {
                 deleteQuietly(videoFile);
                 faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
-                tvSubInstruction.setText("Lỗi quay video. Vui lòng thử lại.");
+                setLivenessInstruction("Lỗi quay video. Vui lòng thử lại");
                 showToast("Lỗi quay video: " + finalizeEvent.getError(), Toast.LENGTH_SHORT);
             }
         }
@@ -589,7 +608,7 @@ public class CameraEkycFragment extends Fragment {
 
                 long remainingMs = Math.max(0L, recordingEndsAtMillis - System.currentTimeMillis());
                 int remainingSeconds = (int) Math.ceil(remainingMs / 1000.0);
-                tvSubInstruction.setText("Đang ghi hình: " + remainingSeconds + "s");
+                setLivenessInstruction("Đang ghi hình: " + remainingSeconds + "s");
 
                 if (remainingMs > 0L) {
                     livenessHandler.postDelayed(this, 250L);
@@ -605,7 +624,7 @@ public class CameraEkycFragment extends Fragment {
         }
 
         faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
-        tvSubInstruction.setText("Mặt rời khỏi khung. Đang hủy video...");
+        setLivenessInstruction("Mặt rời khỏi khung. Đang hủy video...");
         stopLivenessRecording(true);
     }
 
@@ -632,7 +651,7 @@ public class CameraEkycFragment extends Fragment {
 
         isLivenessUploading = true;
         showLoading(true);
-        tvSubInstruction.setText("Đang xác thực khuôn mặt...");
+        setLivenessInstruction("Đang xác thực khuôn mặt...");
 
         MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
         RequestBody reqFile = RequestBody.create(MediaType.parse("video/mp4"), videoFile);
@@ -659,7 +678,7 @@ public class CameraEkycFragment extends Fragment {
                     }
                 } else {
                     faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
-                    tvSubInstruction.setText("Xác thực thất bại. Đưa mặt vào khung để thử lại.");
+                    setLivenessInstruction("Xác thực thất bại. Thử lại");
                     showToast(getErrorMessage(response, "Xác thực khuôn mặt thất bại"), Toast.LENGTH_LONG);
                 }
             }
@@ -670,7 +689,7 @@ public class CameraEkycFragment extends Fragment {
                 showLoading(false);
                 isLivenessUploading = false;
                 faceOverlayView.setBorderState(FaceOverlayView.OverlayState.ERROR);
-                tvSubInstruction.setText("Lỗi mạng. Đưa mặt vào khung để thử lại.");
+                setLivenessInstruction("Lỗi mạng. Thử lại");
                 showToast("Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT);
             }
         });

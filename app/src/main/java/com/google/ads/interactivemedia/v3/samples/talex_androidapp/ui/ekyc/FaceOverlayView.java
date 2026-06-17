@@ -14,16 +14,18 @@ import androidx.annotation.Nullable;
 
 public class FaceOverlayView extends View {
 
-    private Paint backgroundPaint;
-    private Paint transparentPaint;
-    private Paint borderPaint;
-    private Paint dotPaint; // Cọ vẽ các dấu chấm công nghệ
-    private RectF ovalRect;
+    private static final int COLOR_DEFAULT = Color.parseColor("#D4AF37");
+    private static final int COLOR_SUCCESS = Color.parseColor("#57E3A5");
+    private static final int COLOR_ERROR = Color.parseColor("#FF5252");
 
-    // Định nghĩa các mã màu viền
-    private final int COLOR_DEFAULT = Color.parseColor("#D4AF37"); // Vàng Gold mặc định
-    private final int COLOR_SUCCESS = Color.parseColor("#4CAF50"); // Xanh lá khi đang quét
-    private final int COLOR_ERROR = Color.parseColor("#F44336");   // Đỏ khi mặt bị lệch
+    private final Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint clearPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint fullBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint accentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF ovalRect = new RectF();
+
+    private int borderColor = COLOR_DEFAULT;
 
     public FaceOverlayView(Context context) {
         super(context);
@@ -36,46 +38,39 @@ public class FaceOverlayView extends View {
     }
 
     private void init() {
-        // Tắt tăng tốc phần cứng để PorterDuff.Mode.CLEAR đục lỗ xuyên thấu chính xác
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
-        // 1. Cọ vẽ nền đen đặc (Chuẩn tông màu Web)
-        backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        backgroundPaint.setColor(Color.parseColor("#121212"));
-        backgroundPaint.setStyle(Paint.Style.FILL);
+        overlayPaint.setColor(Color.parseColor("#D9121212"));
+        overlayPaint.setStyle(Paint.Style.FILL);
 
-        // 2. Cọ tàng hình (Dùng để đục lỗ Ovan)
-        transparentPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        transparentPaint.setColor(Color.TRANSPARENT);
-        transparentPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        clearPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
 
-        // 3. Cọ vẽ viền đứt đoạn (Đường cong)
-        borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        borderPaint.setColor(COLOR_DEFAULT);
-        borderPaint.setStyle(Paint.Style.STROKE);
-        borderPaint.setStrokeWidth(10f); // Độ dày nét cong
-        borderPaint.setStrokeCap(Paint.Cap.ROUND); // Bo tròn đầu nét vẽ
+        fullBorderPaint.setColor(Color.parseColor("#EAF7F1D9"));
+        fullBorderPaint.setStyle(Paint.Style.STROKE);
+        fullBorderPaint.setStrokeWidth(dp(2.5f));
 
-        // 4. Cọ vẽ các chấm tròn nhỏ
-        dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        dotPaint.setColor(COLOR_DEFAULT);
+        accentPaint.setColor(borderColor);
+        accentPaint.setStyle(Paint.Style.STROKE);
+        accentPaint.setStrokeWidth(dp(5f));
+        accentPaint.setStrokeCap(Paint.Cap.ROUND);
+
+        dotPaint.setColor(borderColor);
         dotPaint.setStyle(Paint.Style.FILL);
-
-        ovalRect = new RectF();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        float density = getResources().getDisplayMetrics().density;
 
-        // Kích thước lỗ Ovan chuẩn
-        float ovalWidth = 260 * density;
-        float ovalHeight = 340 * density;
+        float ovalWidth = Math.min(w * 0.72f, dp(310f));
+        float ovalHeight = Math.min(h * 0.58f, dp(430f));
+        float centerY = h * 0.48f;
 
         float left = (w - ovalWidth) / 2f;
-        // Đẩy Ovan lên trên 40dp để có khoảng trống cho dòng chữ hướng dẫn
-        float top = (h - ovalHeight) / 2f - (40 * density);
+        float top = centerY - ovalHeight / 2f;
+        float minTop = dp(120f);
+        float maxTop = h - ovalHeight - dp(96f);
+        top = Math.max(minTop, Math.min(top, maxTop));
 
         ovalRect.set(left, top, left + ovalWidth, top + ovalHeight);
     }
@@ -84,76 +79,61 @@ public class FaceOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        // Bước 1: Phủ màu nền đen tuyền lên toàn bộ màn hình
-        canvas.drawRect(0, 0, getWidth(), getHeight(), backgroundPaint);
+        int checkpoint = canvas.saveLayer(0, 0, getWidth(), getHeight(), null);
+        canvas.drawRect(0, 0, getWidth(), getHeight(), overlayPaint);
+        canvas.drawOval(ovalRect, clearPaint);
+        canvas.restoreToCount(checkpoint);
 
-        // Bước 2: Dùng cọ tàng hình khoét một lỗ Ovan ở giữa để lộ Camera
-        canvas.drawOval(ovalRect, transparentPaint);
+        canvas.drawOval(ovalRect, fullBorderPaint);
 
-        // Bước 3: Họa tiết chuẩn VNPT AI (Vẽ 4 đoạn cong bao quanh)
-        // Mỗi đoạn cong có độ dài 40 độ
-        float sweepAngle = 40f;
+        RectF accentRect = new RectF(ovalRect);
+        accentRect.inset(-dp(8f), -dp(8f));
+        accentPaint.setColor(borderColor);
+        dotPaint.setColor(borderColor);
 
-        // Đoạn bên Phải (Tâm 0 độ, lùi về -20)
-        canvas.drawArc(ovalRect, -20f, sweepAngle, false, borderPaint);
-        // Đoạn bên Dưới (Tâm 90 độ, lùi về 70)
-        canvas.drawArc(ovalRect, 70f, sweepAngle, false, borderPaint);
-        // Đoạn bên Trái (Tâm 180 độ, lùi về 160)
-        canvas.drawArc(ovalRect, 160f, sweepAngle, false, borderPaint);
-        // Đoạn bên Trên (Tâm 270 độ, lùi về 250)
-        canvas.drawArc(ovalRect, 250f, sweepAngle, false, borderPaint);
+        canvas.drawArc(accentRect, -18f, 42f, false, accentPaint);
+        canvas.drawArc(accentRect, 66f, 48f, false, accentPaint);
+        canvas.drawArc(accentRect, 156f, 48f, false, accentPaint);
+        canvas.drawArc(accentRect, 246f, 48f, false, accentPaint);
 
-        // Bước 4: Họa tiết chuẩn VNPT AI (Vẽ 4 dấu chấm ở 4 góc chéo)
-        // Góc: 45, 135, 225, 315 độ
-        float dotRadius = 12f; // Kích thước hạt chấm
-        drawDotOnEllipse(canvas, 45f, dotRadius);
-        drawDotOnEllipse(canvas, 135f, dotRadius);
-        drawDotOnEllipse(canvas, 225f, dotRadius);
-        drawDotOnEllipse(canvas, 315f, dotRadius);
+        drawDotOnEllipse(canvas, accentRect, 45f);
+        drawDotOnEllipse(canvas, accentRect, 135f);
+        drawDotOnEllipse(canvas, accentRect, 225f);
+        drawDotOnEllipse(canvas, accentRect, 315f);
     }
 
-    /**
-     * Hàm toán học tính toán tọa độ chính xác của 1 điểm trên đường elip
-     * dựa vào góc nghiêng, sau đó vẽ dấu chấm tại tọa độ đó.
-     */
-    private void drawDotOnEllipse(Canvas canvas, float angleDegrees, float radius) {
+    private void drawDotOnEllipse(Canvas canvas, RectF rect, float angleDegrees) {
         float angleRadians = (float) Math.toRadians(angleDegrees);
-        float a = ovalRect.width() / 2f;  // Bán trục lớn
-        float b = ovalRect.height() / 2f; // Bán trục nhỏ
-
-        // Phương trình tham số của Elip: x = a*cos(t), y = b*sin(t)
-        float cx = ovalRect.centerX() + a * (float) Math.cos(angleRadians);
-        float cy = ovalRect.centerY() + b * (float) Math.sin(angleRadians);
-
-        canvas.drawCircle(cx, cy, radius, dotPaint);
+        float radiusX = rect.width() / 2f;
+        float radiusY = rect.height() / 2f;
+        float cx = rect.centerX() + radiusX * (float) Math.cos(angleRadians);
+        float cy = rect.centerY() + radiusY * (float) Math.sin(angleRadians);
+        canvas.drawCircle(cx, cy, dp(4.5f), dotPaint);
     }
 
-    /**
-     * Đổi màu đồng bộ cả Viền cong và Dấu chấm
-     */
     public void setBorderState(OverlayState state) {
-        int targetColor;
         switch (state) {
             case SUCCESS:
-                targetColor = COLOR_SUCCESS;
+                borderColor = COLOR_SUCCESS;
                 break;
             case ERROR:
-                targetColor = COLOR_ERROR;
+                borderColor = COLOR_ERROR;
                 break;
             case DEFAULT:
             default:
-                targetColor = COLOR_DEFAULT;
+                borderColor = COLOR_DEFAULT;
                 break;
         }
-        borderPaint.setColor(targetColor);
-        dotPaint.setColor(targetColor);
+        invalidate();
+    }
 
-        invalidate(); // Yêu cầu vẽ lại giao diện lập tức
+    private float dp(float value) {
+        return value * getResources().getDisplayMetrics().density;
     }
 
     public enum OverlayState {
-        DEFAULT, // Vàng: Đang chờ quét
-        SUCCESS, // Xanh lá: Mặt chuẩn, đang đếm ngược quay
-        ERROR    // Đỏ: Lệch mặt, rớt mặt ra ngoài
+        DEFAULT,
+        SUCCESS,
+        ERROR
     }
 }
