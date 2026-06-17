@@ -72,35 +72,40 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/btnBack"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="16dp"
-        android:padding="12dp"
-        android:src="@android:drawable/ic_menu_revert"
-        android:contentDescription="Quay lại"
-        app:tint="#D4AF37"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/tvStepInstruction"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Chụp mặt trước\nCCCD"
-        android:textColor="#D4AF37"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_marginStart="8dp"
-        app:layout_constraintBottom_toBottomOf="@+id/btnBack"
-        app:layout_constraintStart_toEndOf="@+id/btnBack"
-        app:layout_constraintTop_toTopOf="@+id/btnBack" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Quay lại"
+            app:tint="#D4AF37" />
+
+        <TextView
+            android:id="@+id/tvStepInstruction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mặt trước CCCD"
+            android:textColor="#D4AF37"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="24dp"
         android:background="#1A1A1A"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/frameIdCard">
@@ -110,17 +115,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="32dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="24dp"
             android:gravity="center"
             android:text="Vui lòng căn chỉnh giấy tờ vào trong khung hình"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <TextView
+            android:id="@+id/tvTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:05"
+            android:textColor="#4CAF50"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@+id/tvSubInstruction"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
         <FrameLayout
             android:id="@+id/btnCapture"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
             android:layout_marginBottom="48dp"
             android:background="@drawable/bg_capture_outer"
             android:clickable="true"
@@ -130,11 +149,12 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
-            <View
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_gravity="center"
-                android:background="@drawable/bg_capture_inner" />
+                android:src="@android:drawable/ic_menu_camera"
+                app:tint="#D4AF37" />
         </FrameLayout>
 
         <ProgressBar

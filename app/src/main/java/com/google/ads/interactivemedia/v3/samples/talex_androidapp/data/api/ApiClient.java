@@ -1,6 +1,7 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.BuildConfig;
+import java.util.concurrent.TimeUnit; // Thêm thư viện quản lý thời gian
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
@@ -23,8 +24,12 @@ public class ApiClient {
                 logging.setLevel(HttpLoggingInterceptor.Level.NONE);
             }
 
+            // Đã nâng cấp: Thêm cấu hình Timeout 60 giây chống đứt kết nối khi upload video Liveness
             OkHttpClient client = new OkHttpClient.Builder()
                     .addInterceptor(logging)
+                    .connectTimeout(60, TimeUnit.SECONDS) // Thời gian tối đa để mở kết nối tới Server
+                    .writeTimeout(60, TimeUnit.SECONDS)   // Thời gian tối đa để đẩy file Video lên Server
+                    .readTimeout(60, TimeUnit.SECONDS)    // Thời gian tối đa để đợi FPT.AI phân tích và trả kết quả về
                     .build();
 
             retrofit = new Retrofit.Builder()
