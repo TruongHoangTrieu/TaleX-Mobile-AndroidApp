@@ -38,7 +38,6 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiC
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiService;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.EKycResultResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.utils.ImageCompressor;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
@@ -64,7 +63,8 @@ public class CameraEkycFragment extends Fragment {
     // UI
     private PreviewView viewFinder;
     private TextView tvStepInstruction, tvSubInstruction;
-    private FloatingActionButton btnCapture;
+    private View btnCapture; // Đã đổi thành View (hỗ trợ FrameLayout mới)
+    private View frameIdCard; // Thêm biến ánh xạ Khung ngắm
     private ProgressBar progressBar;
     private ImageView btnBack;
 
@@ -77,7 +77,7 @@ public class CameraEkycFragment extends Fragment {
     // Logic State
     private String kycSessionId;
     private ApiService apiService;
-    private int currentStep = 1; // 1: Mặt trước, 2: Mặt sau, 3: Liveness
+    private int currentStep = 1;
     private Uri frontImageUri = null;
 
     // Launchers
@@ -93,7 +93,6 @@ public class CameraEkycFragment extends Fragment {
             kycSessionId = getArguments().getString("KYC_SESSION_ID");
         }
 
-        // Đăng ký Launcher xin quyền Camera
         requestPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
@@ -133,6 +132,7 @@ public class CameraEkycFragment extends Fragment {
         tvStepInstruction = view.findViewById(R.id.tvStepInstruction);
         tvSubInstruction = view.findViewById(R.id.tvSubInstruction);
         btnCapture = view.findViewById(R.id.btnCapture);
+        frameIdCard = view.findViewById(R.id.frameIdCard); // Ánh xạ khung ngắm
         progressBar = view.findViewById(R.id.progressBar);
         btnBack = view.findViewById(R.id.btnBack);
 
@@ -140,7 +140,6 @@ public class CameraEkycFragment extends Fragment {
 
         setupUIForStep(currentStep);
 
-        // Kiểm tra quyền trước khi mở Camera
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera();
         } else {
@@ -161,13 +160,31 @@ public class CameraEkycFragment extends Fragment {
     private void setupUIForStep(int step) {
         if (step == 1) {
             tvStepInstruction.setText("Bước 1/3: Mặt trước CCCD");
-            tvSubInstruction.setText("Đặt mặt trước giấy tờ vào khung hình, đảm bảo rõ nét.");
+            tvSubInstruction.setText("Vui lòng căn chỉnh giấy tờ vào trong khung hình.");
+
+            // Thiết lập khung hình chữ nhật cho CCCD
+            frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_id_frame);
+            ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            params.height = (int) (220 * getResources().getDisplayMetrics().density); // Cao 220dp
+            frameIdCard.setLayoutParams(params);
+
         } else if (step == 2) {
             tvStepInstruction.setText("Bước 2/3: Mặt sau CCCD");
             tvSubInstruction.setText("Lật mặt sau giấy tờ và giữ cố định thiết bị.");
+
         } else if (step == 3) {
             tvStepInstruction.setText("Bước 3/3: Xác thực khuôn mặt");
             tvSubInstruction.setText("Nhấn nút để quay video khuôn mặt (3-5 giây).");
+
+            // Biến khung ngắm thành hình Tròn cho khuôn mặt
+            frameIdCard.setBackgroundResource(R.drawable.bg_ekyc_face_frame);
+            ViewGroup.LayoutParams params = frameIdCard.getLayoutParams();
+            int size = (int) (300 * getResources().getDisplayMetrics().density); // Tròn 300dp x 300dp
+            params.width = size;
+            params.height = size;
+            frameIdCard.setLayoutParams(params);
+
             if (cameraProvider != null) {
                 cameraProvider.unbindAll();
             }
