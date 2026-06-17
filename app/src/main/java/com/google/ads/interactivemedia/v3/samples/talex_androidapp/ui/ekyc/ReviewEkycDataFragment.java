@@ -11,7 +11,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentResultListener;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 
@@ -68,7 +67,16 @@ public class ReviewEkycDataFragment extends Fragment {
         }
 
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-        btnRetake.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        btnRetake.setOnClickListener(v -> {
+            getParentFragmentManager().popBackStack();
+            getParentFragmentManager().executePendingTransactions();
+            for (Fragment fragment : getParentFragmentManager().getFragments()) {
+                if (fragment instanceof CameraEkycFragment) {
+                    ((CameraEkycFragment) fragment).onRetakeRequested();
+                    break;
+                }
+            }
+        });
         btnConfirm.setOnClickListener(v -> {
             getParentFragmentManager().setFragmentResult(REQUEST_REVIEW_CONFIRMED, new Bundle());
             getParentFragmentManager().popBackStack();
