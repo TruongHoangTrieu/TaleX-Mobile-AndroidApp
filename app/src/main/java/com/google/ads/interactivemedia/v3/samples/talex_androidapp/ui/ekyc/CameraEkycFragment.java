@@ -1,8 +1,10 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -78,8 +80,9 @@ public class CameraEkycFragment extends Fragment {
     private int currentStep = 1; // 1: Mặt trước, 2: Mặt sau, 3: Liveness
     private Uri frontImageUri = null;
 
-    // Video Launcher
+    // Launchers
     private ActivityResultLauncher<Intent> videoCaptureLauncher;
+    private ActivityResultLauncher<String> requestPermissionLauncher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -89,6 +92,19 @@ public class CameraEkycFragment extends Fragment {
         if (getArguments() != null) {
             kycSessionId = getArguments().getString("KYC_SESSION_ID");
         }
+
+        // Đăng ký Launcher xin quyền Camera
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        startCamera();
+                    } else {
+                        Toast.makeText(requireContext(), "Cần cấp quyền Máy ảnh để thực hiện eKYC", Toast.LENGTH_LONG).show();
+                        getParentFragmentManager().popBackStack();
+                    }
+                }
+        );
 
         videoCaptureLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -123,7 +139,13 @@ public class CameraEkycFragment extends Fragment {
         apiService = ApiClient.getApiService();
 
         setupUIForStep(currentStep);
-        startCamera();
+
+        // Kiểm tra quyền trước khi mở Camera
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera();
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
 
         btnCapture.setOnClickListener(v -> {
             if (currentStep == 1 || currentStep == 2) {
@@ -221,7 +243,6 @@ public class CameraEkycFragment extends Fragment {
                 showLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
                     int code = response.body().getCode();
-                    // Đã sửa logic: Chấp nhận 200, 201 hoặc 0
                     if (code == 200 || code == 201 || code == 0) {
                         currentStep = 2;
                         setupUIForStep(currentStep);
