@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Environment;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,30 +17,22 @@ import okhttp3.RequestBody;
 
 public class ImageCompressor {
 
-    // Nâng cấp độ phân giải lên chuẩn 2K để FPT.AI đọc rõ nét quốc huy và chữ nhỏ
+    private static final String TAG = "EKYC_PAYLOAD_DEBUG";
+
+    // Kích thước chuẩn 2K để FPT.AI đọc rõ chữ
     private static final int MAX_WIDTH = 2560;
     private static final int MAX_HEIGHT = 1440;
-
-    // Nâng chất lượng ảnh từ 80% lên 95% (Dung lượng sẽ dao động từ 1.5MB - 2.5MB, thỏa mãn chuẩn < 5MB)
+    // Chất lượng 95% để ảnh không bị vỡ hạt (Dung lượng < 3MB)
     private static final int COMPRESS_QUALITY = 95;
 
-    /**
-     * Nén ảnh từ Uri và đóng gói thành MultipartBody.Part cho Retrofit.
-     * @param context Context của Fragment/Activity
-     * @param uri Đường dẫn ảnh chụp từ CameraX
-     * @param partName Tên key (VD: "frontImage", "backImage", "cmnd") yêu cầu từ Backend
-     * @return MultipartBody.Part hoặc null nếu có lỗi
-     */
     public static MultipartBody.Part getMultipartFromUri(Context context, Uri uri, String partName) {
         try {
-            // 1. Đọc luồng dữ liệu từ Uri
             InputStream inputStream = context.getContentResolver().openInputStream(uri);
             Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
             if (inputStream != null) inputStream.close();
 
             if (originalBitmap == null) return null;
 
-            // 2. Tính toán tỷ lệ thu nhỏ
             int width = originalBitmap.getWidth();
             int height = originalBitmap.getHeight();
             float ratioBitmap = (float) width / (float) height;
@@ -58,30 +52,43 @@ public class ImageCompressor {
                 }
             }
 
-            // 3. Resize ảnh xuống mức an toàn (Giữ lại tối đa độ nét của 2K)
             Bitmap resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, finalWidth, finalHeight, true);
 
-            // 4. Tạo file tạm thời trong thư mục Cache của App
-            File tempFile = new File(context.getCacheDir(), "ekyc_" + System.currentTimeMillis() + ".jpg");
+            // 1. Tạo file tạm ẩn để gửi API
+            File tempFile = new File(context.getCacheDir(), "ekyc_upload_" + System.currentTimeMillis() + ".jpg");
             FileOutputStream outStream = new FileOutputStream(tempFile);
-
-            // Nén ảnh ra định dạng JPEG với chất lượng 95%
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, outStream);
             outStream.flush();
             outStream.close();
 
-            // Xóa Bitmap khỏi RAM ngay lập tức để tránh rò rỉ bộ nhớ
+            // 2. TẠO FILE DEBUG ĐỂ BẠN LẤY RA KIỂM TRA MẮT THƯỜNG (Sẽ xóa đoạn này khi app lên store)
+            File debugDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+            File debugFile = new File(debugDir, "DEBUG_" + partName + "_" + System.currentTimeMillis() + ".jpg");
+            FileOutputStream debugOut = new FileOutputStream(debugFile);
+            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, debugOut);
+            debugOut.flush();
+            debugOut.close();
+
+            // 3. LOG THÔNG SỐ CHI TIẾT RA MÀN HÌNH
+            long fileSizeKB = tempFile.length() / 1024;
+            Log.d(TAG, "========== REQUEST PAYLOAD (MULTIPART) ==========");
+            Log.d(TAG, "[Field Name]: " + partName);
+            Log.d(TAG, "[File Name]: " + tempFile.getName());
+            Log.d(TAG, "[Resolution]: " + finalWidth + " x " + finalHeight);
+            Log.d(TAG, "[File Size]: " + fileSizeKB + " KB");
+            Log.d(TAG, "[Debug Path]: " + debugFile.getAbsolutePath()); // Đường dẫn để bạn tìm ảnh
+            Log.d(TAG, "=================================================");
+
             originalBitmap.recycle();
             if (originalBitmap != resizedBitmap) {
                 resizedBitmap.recycle();
             }
 
-            // 5. Chuyển đổi file thành RequestBody và MultipartBody.Part
             RequestBody requestFile = RequestBody.create(MediaType.parse("image/jpeg"), tempFile);
             return MultipartBody.Part.createFormData(partName, tempFile.getName(), requestFile);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Lỗi nén ảnh", e);
             return null;
         }
     }

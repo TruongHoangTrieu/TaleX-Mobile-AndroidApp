@@ -267,7 +267,12 @@ public class CameraEkycFragment extends Fragment {
             return;
         }
 
-        apiService.uploadFrontId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
+        Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Mặt Trước)");
+        Log.d(TAG, "Session ID: " + kycSessionId);
+        String token = getAuthToken();
+        Log.d(TAG, "Token Length: " + (token != null ? token.length() : "NULL"));
+
+        apiService.uploadFrontId(token, kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 showLoading(false);
@@ -298,6 +303,15 @@ public class CameraEkycFragment extends Fragment {
 
     private void uploadBackId(Uri uri) {
         MultipartBody.Part imagePart = ImageCompressor.getMultipartFromUri(requireContext(), uri, "backImage");
+        if (imagePart == null) {
+            showLoading(false);
+            ivFreezeFrame.setVisibility(View.GONE);
+            Toast.makeText(requireContext(), "Lỗi xử lý ảnh", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Mặt Sau)");
+        Log.d(TAG, "Session ID: " + kycSessionId);
 
         apiService.uploadBackId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
@@ -339,6 +353,9 @@ public class CameraEkycFragment extends Fragment {
             Toast.makeText(requireContext(), "Lỗi trích xuất file Media", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        Log.d(TAG, "--> Đang gửi POST request tới FPT.AI (Upload Liveness Video)");
+        Log.d(TAG, "Session ID: " + kycSessionId);
 
         apiService.verifyLiveness(getAuthToken(), kycSessionId, videoPart, cmndPart).enqueue(new Callback<EKycResultResponse>() {
             @Override
