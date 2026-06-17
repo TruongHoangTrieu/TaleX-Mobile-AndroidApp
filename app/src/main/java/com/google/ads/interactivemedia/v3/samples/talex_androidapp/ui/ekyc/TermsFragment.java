@@ -6,9 +6,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,7 +38,7 @@ public class TermsFragment extends Fragment {
     private static final String TAG = "TermsFragment";
 
     private TextView tvTitle, tvTermsContent;
-    private CheckBox cbCheckpoint1, cbCheckpoint2;
+    private ScrollView scrollViewTerms;
     private MaterialButton btnAcceptAndContinue;
     private ProgressBar progressBar;
     private ImageView btnBack;
@@ -59,8 +59,7 @@ public class TermsFragment extends Fragment {
         // 1. Ánh xạ View
         tvTitle = view.findViewById(R.id.tvTitle);
         tvTermsContent = view.findViewById(R.id.tvTermsContent);
-        cbCheckpoint1 = view.findViewById(R.id.cbCheckpoint1);
-        cbCheckpoint2 = view.findViewById(R.id.cbCheckpoint2);
+        scrollViewTerms = view.findViewById(R.id.scrollViewTerms);
         btnAcceptAndContinue = view.findViewById(R.id.btnAcceptAndContinue);
         progressBar = view.findViewById(R.id.progressBar);
         btnBack = view.findViewById(R.id.btnBack);
@@ -68,13 +67,20 @@ public class TermsFragment extends Fragment {
         // Khởi tạo ApiService
         apiService = ApiClient.getApiService();
 
-        // 2. Lắng nghe sự kiện Checkbox
-        View.OnClickListener checkboxListener = v -> {
-            boolean isBothChecked = cbCheckpoint1.isChecked() && cbCheckpoint2.isChecked();
-            btnAcceptAndContinue.setEnabled(isBothChecked);
-        };
-        cbCheckpoint1.setOnClickListener(checkboxListener);
-        cbCheckpoint2.setOnClickListener(checkboxListener);
+        // 2. Lắng nghe sự kiện cuộn của ScrollView (Scroll to bottom)
+        scrollViewTerms.getViewTreeObserver().addOnScrollChangedListener(() -> {
+            View child = scrollViewTerms.getChildAt(0);
+            if (child != null) {
+                // Tính khoảng cách từ đáy view con đến đáy của ScrollView
+                int diff = (child.getBottom() - (scrollViewTerms.getHeight() + scrollViewTerms.getScrollY()));
+
+                // Đã cuộn đến đáy -> Hiển thị nút
+                if (diff <= 0 && currentTermsId != null) {
+                    btnAcceptAndContinue.setVisibility(View.VISIBLE);
+                    btnAcceptAndContinue.setEnabled(true);
+                }
+            }
+        });
 
         // 3. Lắng nghe sự kiện Nút bấm
         btnAcceptAndContinue.setOnClickListener(v -> submitCreatorRegistration());
@@ -91,9 +97,6 @@ public class TermsFragment extends Fragment {
         fetchActiveTerms();
     }
 
-    /**
-     * Hàm lấy JWT Token thực tế từ bộ nhớ mã hóa
-     */
     private String getAuthToken() {
         try {
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
@@ -129,14 +132,21 @@ public class TermsFragment extends Fragment {
                     TermsResponse termsResponse = response.body();
                     int code = termsResponse.getCode();
 
-                    // Đã sửa: Chấp nhận cả mã 0 và 200 cho trạng thái thành công
                     if ((code == 200 || code == 0) && termsResponse.getData() != null) {
                         currentTermsId = termsResponse.getData().getId();
                         tvTermsContent.setText(termsResponse.getData().getContent());
+
+                        // Bẫy an toàn: Kiểm tra nếu nội dung quá ngắn không cần cuộn
+                        scrollViewTerms.post(() -> {
+                            View child = scrollViewTerms.getChildAt(0);
+                            if (child != null && child.getMeasuredHeight() <= scrollViewTerms.getHeight()) {
+                                btnAcceptAndContinue.setVisibility(View.VISIBLE);
+                                btnAcceptAndContinue.setEnabled(true);
+                            }
+                        });
+
                     } else if (code == 4041) {
                         tvTermsContent.setText("Hệ thống đang cập nhật điều khoản. Vui lòng thử lại sau.");
-                        cbCheckpoint1.setEnabled(false);
-                        cbCheckpoint2.setEnabled(false);
                     }
                 } else {
                     Toast.makeText(getContext(), "Lỗi tải điều khoản", Toast.LENGTH_SHORT).show();
@@ -167,11 +177,9 @@ public class TermsFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null) {
                     int code = response.body().getCode();
 
-                    // Đã sửa: Chấp nhận 200, 201 (Created) hoặc 0 là thành công
                     if (code == 200 || code == 201 || code == 0) {
                         String kycSessionId = response.body().getKycSessionId();
-                        Toast.makeText(getContext(), "Đăng ký thành công! Bắt đầu chụp ảnh...", Toast.LENGTH_SHORT).show();
-
+                        // Ẩn Toast đăng ký thành công để bay vào Camera luôn cho mượt
                         navigateToCameraFragment(kycSessionId);
 
                     } else {
@@ -203,7 +211,11 @@ public class TermsFragment extends Fragment {
 
     private void showLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        btnAcceptAndContinue.setEnabled(!isLoading && cbCheckpoint1.isChecked() && cbCheckpoint2.isChecked());
+        if (isLoading) {
+            btnAcceptAndContinue.setEnabled(false);
+        } else if (btnAcceptAndContinue.getVisibility() == View.VISIBLE) {
+            btnAcceptAndContinue.setEnabled(true);
+        }
         if (btnBack != null) btnBack.setEnabled(!isLoading);
     }
 }

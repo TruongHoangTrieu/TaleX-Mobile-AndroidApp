@@ -95,6 +95,9 @@ dependencies {
     implementation(libs.camerax.camera2)
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
+    // 📍 TÍNH NĂNG MỚI: LÕI AI NHẬN DIỆN KHUÔN MẶT CỦA GOOGLE
+    implementation("com.google.mlkit:face-detection:16.1.6")
+
 // Thêm module Video của CameraX
     implementation("androidx.camera:camera-video:1.3.2")
     testImplementation(libs.junit)
