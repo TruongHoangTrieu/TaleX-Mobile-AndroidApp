@@ -90,7 +90,6 @@ public class CameraEkycFragment extends Fragment {
             kycSessionId = getArguments().getString("KYC_SESSION_ID");
         }
 
-        // Đã sửa: Thêm kiểu ActivityResult rõ ràng vào callback để giải quyết lỗi không tìm thấy getResultCode()
         videoCaptureLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 (ActivityResult result) -> {
@@ -134,7 +133,6 @@ public class CameraEkycFragment extends Fragment {
             }
         });
 
-        // Đã sửa: Thay vì gọi Activity backpress dễ lỗi, ta pop thẳng Fragment này ra khỏi màn hình
         btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
     }
 
@@ -166,7 +164,6 @@ public class CameraEkycFragment extends Fragment {
                 CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
                 cameraProvider.unbindAll();
-                // Đã sửa: Truyền getViewLifecycleOwner() thay vì 'this'
                 cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, imageCapture);
 
             } catch (ExecutionException | InterruptedException e) {
@@ -222,10 +219,16 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 showLoading(false);
-                if (response.isSuccessful() && response.body() != null && response.body().getCode() == 200) {
-                    currentStep = 2;
-                    setupUIForStep(currentStep);
-                    Toast.makeText(requireContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
+                if (response.isSuccessful() && response.body() != null) {
+                    int code = response.body().getCode();
+                    // Đã sửa logic: Chấp nhận 200, 201 hoặc 0
+                    if (code == 200 || code == 201 || code == 0) {
+                        currentStep = 2;
+                        setupUIForStep(currentStep);
+                        Toast.makeText(requireContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
+                    }
                 } else {
                     Toast.makeText(requireContext(), "CCCD không hợp lệ hoặc đã tồn tại.", Toast.LENGTH_LONG).show();
                 }
@@ -246,10 +249,15 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 showLoading(false);
-                if (response.isSuccessful() && response.body() != null && response.body().getCode() == 200) {
-                    currentStep = 3;
-                    setupUIForStep(currentStep);
-                    Toast.makeText(requireContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
+                if (response.isSuccessful() && response.body() != null) {
+                    int code = response.body().getCode();
+                    if (code == 200 || code == 201 || code == 0) {
+                        currentStep = 3;
+                        setupUIForStep(currentStep);
+                        Toast.makeText(requireContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
+                    }
                 } else {
                     Toast.makeText(requireContext(), "Ảnh mặt sau không hợp lệ.", Toast.LENGTH_LONG).show();
                 }
@@ -279,12 +287,15 @@ public class CameraEkycFragment extends Fragment {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
                 showLoading(false);
-                if (response.isSuccessful() && response.body() != null && response.body().getCode() == 200) {
-                    Toast.makeText(requireContext(), "eKYC THÀNH CÔNG!", Toast.LENGTH_LONG).show();
-
-                    // Đã sửa: Gọi requireActivity().finish() an toàn hơn
-                    if (getActivity() != null) {
-                        getActivity().finish();
+                if (response.isSuccessful() && response.body() != null) {
+                    int code = response.body().getCode();
+                    if (code == 200 || code == 201 || code == 0) {
+                        Toast.makeText(requireContext(), "eKYC THÀNH CÔNG!", Toast.LENGTH_LONG).show();
+                        if (getActivity() != null) {
+                            getActivity().finish();
+                        }
+                    } else {
+                        Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 } else {
                     Toast.makeText(requireContext(), "Xác thực khuôn mặt thất bại.", Toast.LENGTH_LONG).show();

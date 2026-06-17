@@ -65,7 +65,7 @@ public class TermsFragment extends Fragment {
         progressBar = view.findViewById(R.id.progressBar);
         btnBack = view.findViewById(R.id.btnBack);
 
-        // Khởi tạo ApiService chuẩn theo cấu trúc dự án của bạn
+        // Khởi tạo ApiService
         apiService = ApiClient.getApiService();
 
         // 2. Lắng nghe sự kiện Checkbox
@@ -78,7 +78,7 @@ public class TermsFragment extends Fragment {
 
         // 3. Lắng nghe sự kiện Nút bấm
         btnAcceptAndContinue.setOnClickListener(v -> submitCreatorRegistration());
-        
+
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> {
                 if (getActivity() != null) {
@@ -92,7 +92,7 @@ public class TermsFragment extends Fragment {
     }
 
     /**
-     * Hàm lấy JWT Token thực tế từ bộ nhớ mã hóa (Khớp 100% với LoginActivity)
+     * Hàm lấy JWT Token thực tế từ bộ nhớ mã hóa
      */
     private String getAuthToken() {
         try {
@@ -108,7 +108,6 @@ public class TermsFragment extends Fragment {
 
             String token = securePrefs.getString("ACCESS_TOKEN", "");
 
-            // Backend Spring Boot yêu cầu JWT phải có chữ "Bearer " ở đầu
             if (!token.isEmpty() && !token.startsWith("Bearer ")) {
                 token = "Bearer " + token;
             }
@@ -122,18 +121,19 @@ public class TermsFragment extends Fragment {
 
     private void fetchActiveTerms() {
         showLoading(true);
-        // Gọi API lấy điều khoản loại "CREATOR"
         apiService.getActiveTerms(getAuthToken(), "CREATOR").enqueue(new Callback<TermsResponse>() {
             @Override
             public void onResponse(Call<TermsResponse> call, Response<TermsResponse> response) {
                 showLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
                     TermsResponse termsResponse = response.body();
+                    int code = termsResponse.getCode();
 
-                    if (termsResponse.getCode() == 200 && termsResponse.getData() != null) {
+                    // Đã sửa: Chấp nhận cả mã 0 và 200 cho trạng thái thành công
+                    if ((code == 200 || code == 0) && termsResponse.getData() != null) {
                         currentTermsId = termsResponse.getData().getId();
                         tvTermsContent.setText(termsResponse.getData().getContent());
-                    } else if (termsResponse.getCode() == 4041) {
+                    } else if (code == 4041) {
                         tvTermsContent.setText("Hệ thống đang cập nhật điều khoản. Vui lòng thử lại sau.");
                         cbCheckpoint1.setEnabled(false);
                         cbCheckpoint2.setEnabled(false);
@@ -165,11 +165,13 @@ public class TermsFragment extends Fragment {
             public void onResponse(Call<CreatorRegisterResponse> call, Response<CreatorRegisterResponse> response) {
                 showLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
-                    if (response.body().getCode() == 200) {
+                    int code = response.body().getCode();
+
+                    // Đã sửa: Chấp nhận 200, 201 (Created) hoặc 0 là thành công
+                    if (code == 200 || code == 201 || code == 0) {
                         String kycSessionId = response.body().getKycSessionId();
                         Toast.makeText(getContext(), "Đăng ký thành công! Bắt đầu chụp ảnh...", Toast.LENGTH_SHORT).show();
 
-                        // Chuyển sang màn hình Camera
                         navigateToCameraFragment(kycSessionId);
 
                     } else {
