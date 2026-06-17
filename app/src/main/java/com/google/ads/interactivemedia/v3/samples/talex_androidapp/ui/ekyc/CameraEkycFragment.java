@@ -80,7 +80,7 @@ public class CameraEkycFragment extends Fragment {
     private String kycSessionId;
     private ApiService apiService;
     private int currentStep = 1;
-    private File frontCroppedFile = null; // Lưu trữ file đã cắt chuẩn
+    private File frontCroppedFile = null;
 
     // Launchers
     private ActivityResultLauncher<Intent> videoCaptureLauncher;
@@ -241,9 +241,10 @@ public class CameraEkycFragment extends Fragment {
 
             @Override
             public void onError(@NonNull ImageCaptureException exception) {
+                if (!isAdded()) return;
                 showLoading(false);
                 ivFreezeFrame.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Lỗi chụp ảnh: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Lỗi chụp ảnh: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -270,28 +271,28 @@ public class CameraEkycFragment extends Fragment {
         apiService.uploadFrontId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
+                if (!isAdded()) return;
                 showLoading(false);
-                if (response.isSuccessful() && response.body() != null) {
-                    int code = response.body().getCode();
-                    if (code == 200 || code == 201 || code == 0) {
-                        currentStep = 2;
-                        setupUIForStep(currentStep);
-                        Toast.makeText(requireContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
-                    } else {
-                        ivFreezeFrame.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
-                    }
+
+                // ĐÃ SỬA: Chỉ cần mã HTTP 20X là thành công tuyệt đối
+                if (response.isSuccessful()) {
+                    Log.d(TAG, "HTTP 200: Nhận diện mặt trước thành công!");
+                    currentStep = 2;
+                    setupUIForStep(currentStep);
+                    Toast.makeText(getContext(), "Xong mặt trước!", Toast.LENGTH_SHORT).show();
                 } else {
                     ivFreezeFrame.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), "CCCD không hợp lệ hoặc đã tồn tại.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "CCCD không hợp lệ hoặc bị mờ. Vui lòng chụp lại.", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "FPT.AI Từ chối - HTTP Code: " + response.code());
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
+                if (!isAdded()) return;
                 showLoading(false);
                 ivFreezeFrame.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -317,28 +318,27 @@ public class CameraEkycFragment extends Fragment {
         apiService.uploadBackId(getAuthToken(), kycSessionId, imagePart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
+                if (!isAdded()) return;
                 showLoading(false);
-                if (response.isSuccessful() && response.body() != null) {
-                    int code = response.body().getCode();
-                    if (code == 200 || code == 201 || code == 0) {
-                        currentStep = 3;
-                        setupUIForStep(currentStep);
-                        Toast.makeText(requireContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
-                    } else {
-                        ivFreezeFrame.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
-                    }
+
+                if (response.isSuccessful()) {
+                    Log.d(TAG, "HTTP 200: Nhận diện mặt sau thành công!");
+                    currentStep = 3;
+                    setupUIForStep(currentStep);
+                    Toast.makeText(getContext(), "Xong mặt sau! Chuẩn bị quay video.", Toast.LENGTH_SHORT).show();
                 } else {
                     ivFreezeFrame.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), "Ảnh mặt sau không hợp lệ.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Ảnh mặt sau không hợp lệ.", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "FPT.AI Từ chối - HTTP Code: " + response.code());
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
+                if (!isAdded()) return;
                 showLoading(false);
                 ivFreezeFrame.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -346,7 +346,6 @@ public class CameraEkycFragment extends Fragment {
     private void uploadLiveness(Uri videoUri) {
         showLoading(true);
 
-        // Sử dụng lại chính file MẶT TRƯỚC ĐÃ CẮT chuẩn ở Bước 1
         MultipartBody.Part cmndPart = ImageCompressor.buildMultipart("cmnd", frontCroppedFile);
         MultipartBody.Part videoPart = getVideoMultipart(videoUri);
 
@@ -360,24 +359,24 @@ public class CameraEkycFragment extends Fragment {
         apiService.verifyLiveness(getAuthToken(), kycSessionId, videoPart, cmndPart).enqueue(new Callback<EKycResultResponse>() {
             @Override
             public void onResponse(@NonNull Call<EKycResultResponse> call, @NonNull Response<EKycResultResponse> response) {
+                if (!isAdded()) return;
                 showLoading(false);
-                if (response.isSuccessful() && response.body() != null) {
-                    int code = response.body().getCode();
-                    if (code == 200 || code == 201 || code == 0) {
-                        Toast.makeText(requireContext(), "eKYC THÀNH CÔNG!", Toast.LENGTH_LONG).show();
-                        if (getActivity() != null) getActivity().finish();
-                    } else {
-                        Toast.makeText(requireContext(), "Lỗi: " + response.body().getMessage(), Toast.LENGTH_LONG).show();
-                    }
+
+                if (response.isSuccessful()) {
+                    Log.d(TAG, "HTTP 200: Liveness thành công tuyệt đối!");
+                    Toast.makeText(getContext(), "eKYC THÀNH CÔNG!", Toast.LENGTH_LONG).show();
+                    if (getActivity() != null) getActivity().finish();
                 } else {
-                    Toast.makeText(requireContext(), "Xác thực khuôn mặt thất bại.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Xác thực khuôn mặt thất bại. Vui lòng quay lại.", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "FPT.AI Từ chối - HTTP Code: " + response.code());
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<EKycResultResponse> call, @NonNull Throwable t) {
+                if (!isAdded()) return;
                 showLoading(false);
-                Toast.makeText(requireContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
