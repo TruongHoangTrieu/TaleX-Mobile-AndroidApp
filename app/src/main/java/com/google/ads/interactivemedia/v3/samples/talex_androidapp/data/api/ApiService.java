@@ -72,7 +72,10 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Body UpdateProfileRequest request // Gửi Object chứa chuỗi String
     );
-
+    @POST("api/auth/refresh-token")
+    Call<com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenResponse> refreshAccessToken(
+            @Body com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenRequest request
+    );
     // =========================================================================
     // LUỒNG ĐIỀU KHOẢN (TERMS) & ĐĂNG KÝ CREATOR
     // =========================================================================

@@ -95,7 +95,12 @@ dependencies {
     implementation(libs.camerax.camera2)
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
-
+// Thư viện lõi ExoPlayer
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+// Giao diện điều khiển Player (Nút Play/Pause, thanh thời gian...)
+    implementation("androidx.media3:media3-ui:1.3.1")
+// BẠN THÊM SẴN CÁI NÀY: Module mở rộng để sau này làm quảng cáo IMA SDK
+    implementation("androidx.media3:media3-exoplayer-ima:1.3.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
