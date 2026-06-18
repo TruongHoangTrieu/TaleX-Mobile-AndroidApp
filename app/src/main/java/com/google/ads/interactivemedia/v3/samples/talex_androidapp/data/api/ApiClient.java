@@ -12,12 +12,16 @@ import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.BuildConfig;
+
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.LoginActivity;
 
 import java.io.IOException;
 import okhttp3.Authenticator;
+
+import java.util.concurrent.TimeUnit; // Thêm thư viện quản lý thời gian
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -46,8 +50,10 @@ public class ApiClient {
                 logging.setLevel(HttpLoggingInterceptor.Level.NONE);
             }
 
+            // Đã nâng cấp: Thêm cấu hình Timeout 60 giây chống đứt kết nối khi upload video Liveness
             OkHttpClient client = new OkHttpClient.Builder()
                     .addInterceptor(logging)
+
                     .authenticator(new Authenticator() {
                         @Override
                         public Request authenticate(Route route, Response response) throws IOException {
@@ -98,6 +104,11 @@ public class ApiClient {
                             return null;
                         }
                     })
+
+                    .connectTimeout(60, TimeUnit.SECONDS) // Thời gian tối đa để mở kết nối tới Server
+                    .writeTimeout(60, TimeUnit.SECONDS)   // Thời gian tối đa để đẩy file Video lên Server
+                    .readTimeout(60, TimeUnit.SECONDS)    // Thời gian tối đa để đợi FPT.AI phân tích và trả kết quả về
+
                     .build();
 
             retrofit = new Retrofit.Builder()

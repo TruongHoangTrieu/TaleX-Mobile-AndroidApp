@@ -22,6 +22,7 @@ import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Te
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterRequest;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.EKycResultResponse;
+import com.google.gson.JsonElement;
 
 import okhttp3.MultipartBody;
 import retrofit2.Call;
@@ -103,7 +104,8 @@ public interface ApiService {
             @Path("kycSessionId") String kycSessionId,
             @Part MultipartBody.Part frontImage
     );
-
+    @GET("api/v1/creators/identities/own")
+    Call<JsonElement> getCreatorIdentities(@Header("Authorization") String token);
     @Multipart
     @POST("api/v1/kyc-sessions/{kycSessionId}/id-card/back-image")
     Call<EKycResultResponse> uploadBackId(
@@ -114,7 +116,7 @@ public interface ApiService {
 
     @Multipart
     @POST("api/v1/kyc-sessions/{kycSessionId}/liveness")
-    Call<EKycResultResponse> verifyLiveness(
+    Call<JsonElement> verifyLiveness(
             @Header("Authorization") String token,
             @Path("kycSessionId") String kycSessionId,
             @Part MultipartBody.Part video, // File video khuôn mặt
