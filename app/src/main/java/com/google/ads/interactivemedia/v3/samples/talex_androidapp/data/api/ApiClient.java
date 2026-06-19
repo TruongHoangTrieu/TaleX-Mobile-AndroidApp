@@ -34,6 +34,8 @@ public class ApiClient {
     private static final String TAG = "ApiClient";
     private static Retrofit retrofit = null;
     private static Context appContext = null; // Cần giữ Context tĩnh để xử lý Preference và đá sang Login
+    private static final Object REFRESH_LOCK = new Object(); // Lock chống race condition khi refresh token
+    private static volatile boolean isRefreshing = false; // Flag tránh nhiều thread cùng refresh
 
     // Khởi tạo ApiClient và truyền Context từ Application class hoặc MainActivity của bạn vào
     public static void init(Context context) {
@@ -57,51 +59,61 @@ public class ApiClient {
                     .authenticator(new Authenticator() {
                         @Override
                         public Request authenticate(Route route, Response response) throws IOException {
-                            // 📍 CƠ CHẾ GIỮ CHÂN: Phát hiện mã lỗi 401 Unauthorized toàn hệ thống
                             Log.d(TAG, "authenticate: Phát hiện Access Token hết hạn (401). Tiến hành làm mới...");
 
-                            // Nếu đã thử refresh token 1 lần trước đó rồi mà vẫn lỗi 401 thì dừng ngay để tránh vòng lặp vô tận
                             if (responseCount(response) >= 2) {
                                 return null;
                             }
 
-                            String currentRefreshToken = getStoredRefreshToken();
-                            if (currentRefreshToken == null || currentRefreshToken.isEmpty()) {
+                            // Synchronized block: chỉ cho 1 thread refresh tại một thời điểm
+                            // Các thread khác đợi rồi dùng token mới đã được thread đầu tiên lưu
+                            synchronized (REFRESH_LOCK) {
+                                // Kiểm tra lại: thread khác có thể đã refresh xong rồi
+                                String currentAccessToken = getStoredAccessToken();
+                                String requestToken = response.request().header("Authorization");
+                                if (currentAccessToken != null && requestToken != null
+                                        && !requestToken.endsWith(currentAccessToken)) {
+                                    // Token đã được thread khác refresh → dùng token mới luôn
+                                    Log.d(TAG, "authenticate: Token đã được thread khác làm mới. Dùng token mới.");
+                                    return response.request().newBuilder()
+                                            .header("Authorization", "Bearer " + currentAccessToken)
+                                            .build();
+                                }
+
+                                String currentRefreshToken = getStoredRefreshToken();
+                                if (currentRefreshToken == null || currentRefreshToken.isEmpty()) {
+                                    handleForceLogout();
+                                    return null;
+                                }
+
+                                Retrofit rawRetrofit = new Retrofit.Builder()
+                                        .baseUrl(BuildConfig.BASE_URL)
+                                        .addConverterFactory(GsonConverterFactory.create())
+                                        .build();
+                                ApiService serviceToRefresh = rawRetrofit.create(ApiService.class);
+
+                                retrofit2.Response<RefreshTokenResponse> refreshResponse =
+                                        serviceToRefresh.refreshAccessToken(new RefreshTokenRequest(currentRefreshToken)).execute();
+
+                                if (refreshResponse.isSuccessful() && refreshResponse.body() != null && refreshResponse.body().isSuccess()) {
+                                    RefreshTokenResponse.TokenData tokenData = refreshResponse.body().getData();
+                                    if (tokenData != null) {
+                                        String newAccessToken = tokenData.getAccessToken();
+                                        String newRefreshToken = tokenData.getRefreshToken();
+
+                                        saveNewTokens(newAccessToken, newRefreshToken);
+                                        Log.d(TAG, "authenticate: Làm mới Token thành công! Đang thực thi lại Request cũ...");
+
+                                        return response.request().newBuilder()
+                                                .header("Authorization", "Bearer " + newAccessToken)
+                                                .build();
+                                    }
+                                }
+
+                                Log.e(TAG, "authenticate: Cả Refresh Token cũng hết hạn. Đăng xuất hệ thống.");
                                 handleForceLogout();
                                 return null;
                             }
-
-                            // Gọi ĐỒNG BỘ (.execute()) API refresh token để giữ tiến trình chạy ngầm đúng thứ tự
-                            Retrofit rawRetrofit = new Retrofit.Builder()
-                                    .baseUrl(BuildConfig.BASE_URL)
-                                    .addConverterFactory(GsonConverterFactory.create())
-                                    .build();
-                            ApiService serviceToRefresh = rawRetrofit.create(ApiService.class);
-
-                            retrofit2.Response<RefreshTokenResponse> refreshResponse =
-                                    serviceToRefresh.refreshAccessToken(new RefreshTokenRequest(currentRefreshToken)).execute();
-
-                            if (refreshResponse.isSuccessful() && refreshResponse.body() != null && refreshResponse.body().isSuccess()) {
-                                RefreshTokenResponse.TokenData tokenData = refreshResponse.body().getData();
-                                if (tokenData != null) {
-                                    String newAccessToken = tokenData.getAccessToken();
-                                    String newRefreshToken = tokenData.getRefreshToken();
-
-                                    // Lưu đè cặp token mới tinh vào bộ nhớ mã hóa thiết bị
-                                    saveNewTokens(newAccessToken, newRefreshToken);
-                                    Log.d(TAG, "authenticate: Làm mới Token thành công! Đang thực thi lại Request cũ...");
-
-                                    // Gắn Access Token mới vào Header và tự động chạy lại Request cũ một cách mượt mà
-                                    return response.request().newBuilder()
-                                            .header("Authorization", "Bearer " + newAccessToken)
-                                            .build();
-                                }
-                            }
-
-                            // Trường hợp Refresh Token cũng hết hạn nốt (Đã lâu không vào App) -> Đá văng ra bắt đăng nhập lại
-                            Log.e(TAG, "authenticate: Cả Refresh Token cũng hết hạn. Đăng xuất hệ thống.");
-                            handleForceLogout();
-                            return null;
                         }
                     })
 
@@ -126,6 +138,24 @@ public class ApiClient {
             result++;
         }
         return result;
+    }
+
+    // ── HÀM ĐỌC ACCESS TOKEN TỪ BỘ NHỚ MÃ HÓA ──────────────────────
+    private static String getStoredAccessToken() {
+        if (appContext == null) return null;
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            SharedPreferences securePrefs = EncryptedSharedPreferences.create(
+                    "TaleXSecurePref",
+                    masterKeyAlias,
+                    appContext,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+            return securePrefs.getString("ACCESS_TOKEN", null);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ── HÀM ĐỌC REFRESH TOKEN TỪ BỘ NHỚ MÃ HÓA ──────────────────────
