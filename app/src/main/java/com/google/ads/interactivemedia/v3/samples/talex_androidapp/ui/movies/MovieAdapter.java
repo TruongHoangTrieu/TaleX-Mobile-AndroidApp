@@ -1,5 +1,6 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.movies;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,6 +33,20 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         holder.tvTitle.setText(movie.getTitle());
         holder.tvBadge.setText(movie.getBadgeText());
         holder.imgPoster.setImageResource(movie.getPosterResource());
+
+        // XỬ LÝ SỰ KIỆN CLICK CHUYỂN SANG MÀN HÌNH CHI TIẾT PHIM
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(v.getContext(), MovieDetailActivity.class);
+
+                // Gói dữ liệu của bộ phim hiện tại gửi đi
+                intent.putExtra("EXTRA_MOVIE_TITLE", movie.getTitle());
+                intent.putExtra("EXTRA_MOVIE_POSTER", movie.getPosterResource());
+
+                v.getContext().startActivity(intent);
+            }
+        });
     }
 
     @Override
