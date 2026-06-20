@@ -1,5 +1,6 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.comic;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,6 +38,17 @@ public class ComicAdapter extends RecyclerView.Adapter<ComicAdapter.ComicViewHol
         holder.tvTitle.setText(comic.getTitle());
         holder.tvSale.setText(comic.getSalePercent());
         holder.imgCover.setImageResource(comic.getImageResource()); // Đổ ảnh bìa
+
+        // 🌟 BỔ SUNG: Xử lý sự kiện click vào ô truyện tranh để sang màn hình chi tiết
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(v.getContext(), ComicDetailActivity.class);
+
+            // Gửi tên truyện động sang màn hình chi tiết truyện
+            intent.putExtra("EXTRA_COMIC_TITLE", comic.getTitle());
+            intent.putExtra("EXTRA_COMIC_IMAGE", comic.getImageResource());
+            // Thực hiện chuyển màn hình
+            v.getContext().startActivity(intent);
+        });
     }
 
     @Override

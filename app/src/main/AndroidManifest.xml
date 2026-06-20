@@ -71,6 +71,7 @@
             android:name=".ui.movies.MovieDetailActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
-             </application>
+        <activity android:name=".ui.comic.ComicDetailActivity" android:exported="true" />
 
+             </application>
 </manifest>

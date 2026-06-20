@@ -9,7 +9,7 @@
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
-        android:layout_height="220dp"
+        android:layout_height="250dp"
         android:background="#000000"
         app:use_controller="true"
         app:resize_mode="fit"/>
