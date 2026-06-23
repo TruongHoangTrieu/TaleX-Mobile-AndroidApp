@@ -22,10 +22,10 @@ import androidx.security.crypto.MasterKeys;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.VerifyEmailRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResendOtpRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LoginResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.VerifyEmailRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ResendOtpRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RegisterResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.MainActivity;
 
 import java.io.IOException;

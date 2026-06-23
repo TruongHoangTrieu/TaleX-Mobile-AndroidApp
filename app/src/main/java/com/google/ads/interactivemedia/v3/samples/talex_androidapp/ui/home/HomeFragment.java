@@ -1,5 +1,6 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.home;
 
+import android.content.Intent;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
@@ -7,6 +8,9 @@ import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,10 +20,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Comic;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Movie;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.comic.Comic;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Movie;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.comic.ComicAdapter;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.movies.MovieAdapter;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.dailyreward.MissionCenterActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,13 +43,10 @@ public class HomeFragment extends Fragment {
                 int totalItems = viewPagerBanner.getAdapter().getItemCount();
 
                 if (currentItem == totalItems - 1) {
-                    // Nếu đang ở ảnh cuối cùng, nhảy dứt khoát về ảnh đầu tiên (Không cuộn lùi)
                     viewPagerBanner.setCurrentItem(0, false);
                 } else {
-                    // Nếu chưa tới cuối, cứ cuộn mượt sang ảnh tiếp theo bên phải
                     viewPagerBanner.setCurrentItem(currentItem + 1, true);
                 }
-
                 sliderHandler.postDelayed(this, 3000);
             }
         }
@@ -55,28 +57,22 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
-        // 1. Điều khiển Banner (Poster lớn đề xuất)
-        // 1. Điều khiển Banner (Poster lớn đề xuất) và Đồng bộ chữ theo Slide
         // 1. Điều khiển Banner (Poster lớn đề xuất) và Đồng bộ chữ theo Slide
         viewPagerBanner = view.findViewById(R.id.view_pager_banner);
+        TextView tvBannerTitle = view.findViewById(R.id.tv_banner_title);
+        TextView tvBannerSubtitle = view.findViewById(R.id.tv_banner_subtitle);
 
-        // Ánh xạ 2 TextView hiển thị chữ của Banner ở ngoài XML vào code Java
-        android.widget.TextView tvBannerTitle = view.findViewById(R.id.tv_banner_title);
-        android.widget.TextView tvBannerSubtitle = view.findViewById(R.id.tv_banner_subtitle);
-
-        // ĐÃ ĐỒNG BỘ: Sắp xếp lại thứ tự tên phim chính xác
         String[] bannerTitles = {"PAYBACK: Báo Thù", "Mùa Hè Nồng Nhiệt", "Nhớ Mãi Không Quên"};
         String[] bannerSubtitles = {"Thái Lan · Cập nhật tập 3", "Trung Quốc · Tập Mới", "Hàn Quốc · Trọn bộ 24 tập"};
 
-        // ĐÃ ĐỒNG BỘ: Sắp xếp lại thứ tự ảnh tương ứng 100% với tên phim ở trên
         List<Integer> bannerImages = new ArrayList<>();
-        bannerImages.add(R.drawable.comic4); // Vị trí 0: Ứng với PAYBACK
-        bannerImages.add(R.drawable.comic5); // Vị trí 1: Ứng với Mùa Hè Nồng Nhiệt
-        bannerImages.add(R.drawable.comic6); // Vị trí 2: Ứng với Nhớ Mãi Không Quên
+        bannerImages.add(R.drawable.comic4);
+        bannerImages.add(R.drawable.comic5);
+        bannerImages.add(R.drawable.comic6);
 
+        // Đã sửa lỗi: Nạp Adapter được định nghĩa ở cuối file
         viewPagerBanner.setAdapter(new BannerAdapter(bannerImages));
 
-        // Bộ lắng nghe sự kiện vuốt trang để đổi nội dung chữ ngay lập tức
         viewPagerBanner.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -89,16 +85,15 @@ public class HomeFragment extends Fragment {
         });
 
         sliderHandler.postDelayed(sliderRunnable, 3000);
-        // 2. Ánh xạ các danh sách tổng hợp (ID chuẩn theo giao diện mới)
+
+        // 2. Ánh xạ các danh sách tổng hợp
         rvTrendingComics = view.findViewById(R.id.rv_trending_comics);
         rvRecommendedMovies = view.findViewById(R.id.rv_recommended_movies);
         rvContinueWatching = view.findViewById(R.id.rv_continue_watching);
 
-        // Quy đổi 12dp sang Pixel để làm khoảng cách giãn đều giữa các item cuộn ngang
         int spacingInPixels = (int) TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
 
-        // ĐỔI TẤT CẢ SANG ĐỊNH DẠNG CUỘN NGANG (LinearLayoutManager - HORIZONTAL) giống trang kia của bạn
         rvTrendingComics.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvTrendingComics.addItemDecoration(new HorizontalSpacingItemDecoration(spacingInPixels));
 
@@ -127,6 +122,15 @@ public class HomeFragment extends Fragment {
         newMovieList.add(new Movie("Tiểu Thư Ác Độc Đại Chiến", R.drawable.comic1, "FHD"));
         rvContinueWatching.setAdapter(new MovieAdapter(newMovieList));
 
+        // 6. XỬ LÝ CLICK NÚT VÍ XU SANG TRUNG TÂM NHIỆM VỤ
+        LinearLayout btnCoinWallet = view.findViewById(R.id.btn_coin_wallet);
+        if (btnCoinWallet != null) {
+            btnCoinWallet.setOnClickListener(v -> {
+                Intent intent = new Intent(getContext(), MissionCenterActivity.class);
+                startActivity(intent);
+            });
+        }
+
         return view;
     }
 
@@ -143,20 +147,56 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Bộ trang trí phân chia khoảng cách hoàn hảo cho các item hàng ngang (Không bao giờ lo dính ảnh)
+     * LỚP INNER CLASS BANNER ADAPTER ĐỂ FIX LỖI BIÊN DỊCH CHƯA KHAI BÁO
      */
+    private static class BannerAdapter extends RecyclerView.Adapter<BannerAdapter.BannerViewHolder> {
+        private final List<Integer> imageList;
+
+        public BannerAdapter(List<Integer> imageList) {
+            this.imageList = imageList;
+        }
+
+        @NonNull
+        @Override
+        public BannerViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            ImageView imageView = new ImageView(parent.getContext());
+            imageView.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+            ));
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            return new BannerViewHolder(imageView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull BannerViewHolder holder, int position) {
+            holder.imageView.setImageResource(imageList.get(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return imageList.size();
+        }
+
+        static class BannerViewHolder extends RecyclerView.ViewHolder {
+            ImageView imageView;
+            public BannerViewHolder(@NonNull View itemView) {
+                super(itemView);
+                imageView = (ImageView) itemView;
+            }
+        }
+    }
+
     public static class HorizontalSpacingItemDecoration extends RecyclerView.ItemDecoration {
         private final int spacing;
-
         public HorizontalSpacingItemDecoration(int spacing) {
             this.spacing = spacing;
         }
-
         @Override
         public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
             int position = parent.getChildAdapterPosition(view);
             if (position != 0) {
-                outRect.left = spacing; // Tạo khoảng trống 12dp sang bên trái từ item thứ 2 trở đi
+                outRect.left = spacing;
             }
         }
     }

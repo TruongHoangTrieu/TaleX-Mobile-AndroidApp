@@ -21,9 +21,9 @@ import androidx.security.crypto.MasterKeys;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiService;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.TermsResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.creator.CreatorRegisterRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.creator.CreatorRegisterResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.creator.TermsResponse;
 import com.google.android.material.button.MaterialButton;
 
 import java.io.IOException;
@@ -203,3 +203,4 @@ public class TermsFragment extends Fragment {
         }
     }
 }
+

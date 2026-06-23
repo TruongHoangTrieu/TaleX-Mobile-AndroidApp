@@ -49,7 +49,7 @@ import androidx.security.crypto.MasterKeys;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiService;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.EKycResultResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ekyc.EKycResultResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.utils.ImageCompressor;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.JsonArray;
@@ -1137,3 +1137,4 @@ public class CameraEkycFragment extends Fragment {
         }
     }
 }
+

@@ -13,8 +13,8 @@ import androidx.security.crypto.MasterKeys;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.BuildConfig;
 
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RefreshTokenRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RefreshTokenResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.login.LoginActivity;
 
 import java.io.IOException;

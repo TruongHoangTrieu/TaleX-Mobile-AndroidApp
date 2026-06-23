@@ -15,8 +15,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CompleteProfileRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.CompleteProfileRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LoginResponse;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.MainActivity;
 // Import EkycActivity mà chúng ta vừa tạo ở bước trước
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.ekyc.EkycActivity;

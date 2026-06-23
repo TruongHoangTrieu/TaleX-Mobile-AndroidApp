@@ -8,7 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Actor;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Actor;
 import java.util.List;
 
 public class ActorAdapter extends RecyclerView.Adapter<ActorAdapter.ActorViewHolder> {

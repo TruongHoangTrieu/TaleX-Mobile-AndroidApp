@@ -29,8 +29,8 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.UpdateProfileRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.profile.ProfileResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.profile.UpdateProfileRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

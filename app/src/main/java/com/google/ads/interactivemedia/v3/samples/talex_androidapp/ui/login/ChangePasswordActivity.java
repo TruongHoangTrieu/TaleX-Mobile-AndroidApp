@@ -14,8 +14,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ChangePasswordRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ChangePasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LoginResponse;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -162,3 +162,4 @@ public class ChangePasswordActivity extends AppCompatActivity {
         }
     }
 }
+

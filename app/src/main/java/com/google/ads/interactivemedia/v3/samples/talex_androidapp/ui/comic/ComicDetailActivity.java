@@ -13,8 +13,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Episode;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Chapter;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Episode;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.comic.Chapter;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -11,8 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Chapter;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Episode;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.comic.Chapter;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Episode;
 import java.util.List;
 
 public class ChapterAdapter extends RecyclerView.Adapter<ChapterAdapter.ChapterViewHolder> {

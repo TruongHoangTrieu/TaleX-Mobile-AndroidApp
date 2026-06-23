@@ -17,8 +17,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Actor;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Movie;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Actor;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Movie;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.home.HomeFragment.HorizontalSpacingItemDecoration;
 
 import java.util.ArrayList;

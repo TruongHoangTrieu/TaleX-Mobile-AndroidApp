@@ -52,28 +52,33 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/btn_vip"
+            android:id="@+id/btn_coin_wallet"
             android:layout_width="wrap_content"
             android:layout_height="28dp"
             android:layout_marginStart="12dp"
             android:background="@android:drawable/toast_frame"
-            android:backgroundTint="#D4AF37"
+            android:backgroundTint="#252830"
             android:gravity="center"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingHorizontal="10dp"
+            android:clickable="true"
+            android:focusable="true">
 
+            <!-- Icon Đồng xu màu vàng nghệ -->
             <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginEnd="4dp"
-                android:src="@drawable/ic_vip"
-                app:tint="#141210" />
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginEnd="5dp"
+                android:src="@drawable/ic_coin"
+                app:tint="#D4AF37" />
 
+            <!-- Số dư xu của tài khoản (Ví dụ: 150 xu) -->
             <TextView
+                android:id="@+id/tv_user_coin_balance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="VIP"
-                android:textColor="#141210"
+                android:text="150"
+                android:textColor="#E5E0D8"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>

@@ -1,27 +1,27 @@
 package com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api;
 
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LoginResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RegisterResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.VerifyEmailRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.LogoutResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResendOtpRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.GoogleLoginRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.GoogleLoginResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CompleteProfileRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ChangePasswordRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ResetPasswordRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ProfileResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.UpdateProfileRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LoginRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LoginResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RegisterRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RegisterResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.VerifyEmailRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LogoutRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.LogoutResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ResendOtpRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.GoogleLoginRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.GoogleLoginResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.CompleteProfileRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ChangePasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ForgotPasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ForgotPasswordResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ResetPasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.profile.ProfileResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.profile.UpdateProfileRequest;
 // --- CÁC MODEL MỚI CHO LUỒNG EKYC SẼ ĐƯỢC TẠO Ở BƯỚC TIẾP THEO ---
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.TermsResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.CreatorRegisterResponse;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.EKycResultResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.creator.TermsResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.creator.CreatorRegisterRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.creator.CreatorRegisterResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ekyc.EKycResultResponse;
 import com.google.gson.JsonElement;
 
 import okhttp3.MultipartBody;
@@ -74,8 +74,8 @@ public interface ApiService {
             @Body UpdateProfileRequest request // Gửi Object chứa chuỗi String
     );
     @POST("api/auth/refresh-token")
-    Call<com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenResponse> refreshAccessToken(
-            @Body com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.RefreshTokenRequest request
+    Call<com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RefreshTokenResponse> refreshAccessToken(
+            @Body com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.RefreshTokenRequest request
     );
     // =========================================================================
     // LUỒNG ĐIỀU KHOẢN (TERMS) & ĐĂNG KÝ CREATOR
@@ -123,3 +123,4 @@ public interface ApiService {
             @Part MultipartBody.Part cmnd   // File ảnh mặt trước CCCD
     );
 }
+

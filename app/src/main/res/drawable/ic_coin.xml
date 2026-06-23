@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 1. Vòng tròn nền ngoài cùng của đồng xu (Màu vàng nghệ đậm) -->
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/>
+
+    <!-- 2. Vòng tròn viền nổi bên trong (Tạo hiệu ứng khối đúc) -->
+    <path
+        android:fillColor="#F3E5AB"
+        android:pathData="M12,4c-4.42,0 -8,3.58 -8,8s3.58,8 8,8 8,-3.58 8,-8 -3.58,-8 -8,-8zM12,18c-3.31,0 -6,-2.69 -6,-6s2.69,-6 6,-6 6,2.69 6,6 -2.69,6 -6,6z"/>
+
+    <!-- 3. Dập chữ "C" nổi ở chính tâm đồng xu -->
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M14.5,9.5h-1.5c-1.1,0 -2,0.9 -2,2v1c0,1.1 0.9,2 2,2h1.5v1.5h-1.5c-1.93,0 -3.5,-1.57 -3.5,-3.5v-1c0,-1.93 1.57,-3.5 3.5,-3.5h1.5V9.5z"/>
+</vector>

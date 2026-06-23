@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.Movie;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.movie.Movie;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.ui.home.BannerAdapter;
 import java.util.ArrayList;
 import java.util.List;

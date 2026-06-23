@@ -12,8 +12,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.R;
 import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.api.ApiClient;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordRequest;
-import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.ForgotPasswordResponse;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ForgotPasswordRequest;
+import com.google.ads.interactivemedia.v3.samples.talex_androidapp.data.model.auth.ForgotPasswordResponse;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -111,3 +111,4 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         });
     }
 }
+
