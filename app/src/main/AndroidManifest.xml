@@ -67,6 +67,11 @@
         <activity
             android:name=".ui.account.ProfileDetailActivity"
             android:exported="false" />
-             </application>
+        <activity
+            android:name=".ui.movies.MovieDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity android:name=".ui.comic.ComicDetailActivity" android:exported="true" />
 
+             </application>
 </manifest>

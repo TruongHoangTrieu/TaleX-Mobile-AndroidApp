@@ -3,7 +3,10 @@ package com.google.ads.interactivemedia.v3.samples.talex_androidapp.utils;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,71 +18,96 @@ import okhttp3.RequestBody;
 
 public class ImageCompressor {
 
-    private static final int MAX_WIDTH = 1920;
-    private static final int MAX_HEIGHT = 1080;
-    private static final int COMPRESS_QUALITY = 80;
+    private static final String TAG = "EKYC_PAYLOAD_DEBUG";
+    // Đảm bảo dung lượng nhẹ nhưng chất lượng hình ảnh là tốt nhất
+    private static final int COMPRESS_QUALITY = 95;
 
     /**
-     * Nén ảnh từ Uri và đóng gói thành MultipartBody.Part cho Retrofit.
-     * @param context Context của Fragment/Activity
-     * @param uri Đường dẫn ảnh chụp từ CameraX
-     * @param partName Tên key (VD: "frontImage", "backImage", "cmnd") yêu cầu từ Backend
-     * @return MultipartBody.Part hoặc null nếu có lỗi
+     * Thuật toán Cookie Cutter: Ánh xạ tọa độ UI để cắt chính xác phần ảnh bên trong khung
      */
-    public static MultipartBody.Part getMultipartFromUri(Context context, Uri uri, String partName) {
+    public static File processAndCropImage(Context context, Uri uri, String partName,
+                                           int viewWidth, int viewHeight,
+                                           float frameX, float frameY, float frameW, float frameH) {
         try {
-            // 1. Đọc luồng dữ liệu từ Uri
+            // 1. Đọc ảnh gốc chụp từ cảm biến Camera
             InputStream inputStream = context.getContentResolver().openInputStream(uri);
             Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
             if (inputStream != null) inputStream.close();
 
             if (originalBitmap == null) return null;
 
-            // 2. Tính toán tỷ lệ thu nhỏ để bảo vệ RAM
-            int width = originalBitmap.getWidth();
-            int height = originalBitmap.getHeight();
-            float ratioBitmap = (float) width / (float) height;
-            float ratioMax = (float) MAX_WIDTH / (float) MAX_HEIGHT;
+            // 2. Chống méo: Đọc EXIF và xoay ảnh về đúng chiều gốc
+            InputStream exifStream = context.getContentResolver().openInputStream(uri);
+            ExifInterface exif = new ExifInterface(exifStream);
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            if (exifStream != null) exifStream.close();
 
-            int finalWidth = width;
-            int finalHeight = height;
-            if (ratioMax > ratioBitmap) {
-                if (height > MAX_HEIGHT) {
-                    finalHeight = MAX_HEIGHT;
-                    finalWidth = (int) ((float) height * ratioBitmap);
-                }
-            } else {
-                if (width > MAX_WIDTH) {
-                    finalWidth = MAX_WIDTH;
-                    finalHeight = (int) ((float) width / ratioBitmap);
-                }
-            }
+            Matrix matrix = new Matrix();
+            if (orientation == ExifInterface.ORIENTATION_ROTATE_90) matrix.postRotate(90);
+            else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) matrix.postRotate(180);
+            else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) matrix.postRotate(270);
 
-            // 3. Resize ảnh xuống mức an toàn
-            Bitmap resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, finalWidth, finalHeight, true);
+            Bitmap rotatedBitmap = Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.getWidth(), originalBitmap.getHeight(), matrix, true);
+            if (rotatedBitmap != originalBitmap) originalBitmap.recycle();
 
-            // 4. Tạo file tạm thời trong thư mục Cache của App (Tự động xóa khi đầy, không cần xin quyền Storage)
-            File tempFile = new File(context.getCacheDir(), "ekyc_" + System.currentTimeMillis() + ".jpg");
+            // 3. TOÁN HỌC ÁNH XẠ: Tính toán tỷ lệ Camera Preview đè lên Màn hình
+            float scaleX = (float) viewWidth / rotatedBitmap.getWidth();
+            float scaleY = (float) viewHeight / rotatedBitmap.getHeight();
+            float scale = Math.max(scaleX, scaleY); // Lấy tỷ lệ lớn hơn do PreviewView dùng CenterCrop
+
+            float scaledW = rotatedBitmap.getWidth() * scale;
+            float scaledH = rotatedBitmap.getHeight() * scale;
+
+            // Độ lệch tâm (Do ảnh bị phóng to tràn ra ngoài màn hình)
+            float dx = (scaledW - viewWidth) / 2f;
+            float dy = (scaledH - viewHeight) / 2f;
+
+            // Ánh xạ tọa độ Khung vàng (UI) ngược về tọa độ của Ảnh gốc (Bitmap)
+            int cropX = Math.round((frameX + dx) / scale);
+            int cropY = Math.round((frameY + dy) / scale);
+            int cropW = Math.round(frameW / scale);
+            int cropH = Math.round(frameH / scale);
+
+            // Chốt chặn an toàn: Ngăn lỗi tràn viền (Out of Bounds) nếu khung quá sát mép
+            cropX = Math.max(0, cropX);
+            cropY = Math.max(0, cropY);
+            if (cropX + cropW > rotatedBitmap.getWidth()) cropW = rotatedBitmap.getWidth() - cropX;
+            if (cropY + cropH > rotatedBitmap.getHeight()) cropH = rotatedBitmap.getHeight() - cropY;
+
+            // 4. TIẾN HÀNH CẮT ẢNH
+            Bitmap croppedBitmap = Bitmap.createBitmap(rotatedBitmap, cropX, cropY, cropW, cropH);
+            if (croppedBitmap != rotatedBitmap) rotatedBitmap.recycle();
+
+            // 5. Lưu thành File thực tế chuẩn bị gửi Backend
+            File tempFile = new File(context.getCacheDir(), "ekyc_" + partName + "_" + System.currentTimeMillis() + ".jpg");
             FileOutputStream outStream = new FileOutputStream(tempFile);
-
-            // Nén ảnh ra định dạng JPEG với chất lượng 80%
-            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, outStream);
+            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, outStream);
             outStream.flush();
             outStream.close();
 
-            // Xóa Bitmap khỏi RAM ngay lập tức để tránh rò rỉ bộ nhớ
-            originalBitmap.recycle();
-            if (originalBitmap != resizedBitmap) {
-                resizedBitmap.recycle();
-            }
+            // Log chi tiết dữ liệu
+            long fileSizeKB = tempFile.length() / 1024;
+            Log.d(TAG, "========== CROPPED PAYLOAD ==========");
+            Log.d(TAG, "[Field Name]: " + partName);
+            Log.d(TAG, "[Cropped Resolution]: " + croppedBitmap.getWidth() + "x" + croppedBitmap.getHeight());
+            Log.d(TAG, "[File Size]: " + fileSizeKB + " KB");
+            Log.d(TAG, "=====================================");
 
-            // 5. Chuyển đổi file thành RequestBody và MultipartBody.Part
-            RequestBody requestFile = RequestBody.create(MediaType.parse("image/jpeg"), tempFile);
-            return MultipartBody.Part.createFormData(partName, tempFile.getName(), requestFile);
+            croppedBitmap.recycle();
+            return tempFile;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Lỗi cắt gọt ảnh", e);
             return null;
         }
+    }
+
+    /**
+     * Đóng gói File thành MultipartBody
+     */
+    public static MultipartBody.Part buildMultipart(String partName, File file) {
+        if (file == null || !file.exists()) return null;
+        RequestBody requestFile = RequestBody.create(MediaType.parse("image/jpeg"), file);
+        return MultipartBody.Part.createFormData(partName, file.getName(), requestFile);
     }
 }
